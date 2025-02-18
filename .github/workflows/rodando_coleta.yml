@@ -24,7 +24,6 @@ jobs:
 
     - name: Rodando Valuation
       run: |
-        cd ./codigos_rodando
         pwd
         python rodando_valuations.py
 
