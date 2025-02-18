@@ -31,6 +31,8 @@ jobs:
 
     - name: Rodando Valuation
       run: |
+        cd ./codigos_rodando
+        pwd
         python rodando_valuation.py
 
     - name: Commit and push changes
