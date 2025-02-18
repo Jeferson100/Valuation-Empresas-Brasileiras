@@ -33,7 +33,7 @@ jobs:
       run: |
         cd ./codigos_rodando
         pwd
-        python rodando_valuation.py
+        python rodando_valuations.py
 
     - name: Commit and push changes
       env:
