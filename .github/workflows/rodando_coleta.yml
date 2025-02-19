@@ -26,6 +26,11 @@ jobs:
       run: |
         pwd
         python rodando_valuations.py
+    
+    - name: Configure Git
+      run: |
+          git config --global user.email "sehnemjeferson@gmail.com"
+          git config --global user.name "Jeferson Sehnem"
 
     - name: Commit and push changes
       env:

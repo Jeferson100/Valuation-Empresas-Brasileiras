@@ -1,6 +1,9 @@
 import pandas as pd
 import yfinance as yf
 from fundamentos import ValuationModoloGordon, ValuationFluxoCaixaDescontado, IndicadoresFinanceiros
+import warnings
+
+warnings.filterwarnings("ignore")
 
 
 acoes= pd.read_csv("dados/setor.csv")['tic'].to_list()
