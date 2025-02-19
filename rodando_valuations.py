@@ -75,4 +75,4 @@ for acao in acoes:
         print(f'Erro ao obter dados da acao {acao}')
 data_valores = pd.DataFrame(data_valuation)
 
-data_valores.sort_values(by=['diferenca_fluxo', 'diferenca_gordon'], ascending=False).to_csv('dados/valores_valuations_acoes.csv', index=False)
+data_valores.sort_values(by=['diferenca_gordon', 'diferenca_fluxo'], ascending=False).to_csv('dados/valores_valuations_acoes.csv', index=False)
