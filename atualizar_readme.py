@@ -13,10 +13,10 @@ with open('README.md', 'r') as file:
 # Verifica e localiza a seção "Resultados das Estimativas"
 section_found = False
 for i, line in enumerate(readme_content):
-    if '## Estrutura do RepositÃ³rio' or '## Estrutura do Repositório' in line:
-        index_fim = i
     if '## Resultados das Estimativas' in line:
         index_inicio = i
+    if '## Fim' in line:
+        index_fim = i
 
 readme_content = readme_content[:index_inicio+1] + readme_content[index_fim-1:]
         
