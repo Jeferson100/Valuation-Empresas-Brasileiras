@@ -29,4 +29,5 @@ matplotlib
 ipeadatapy
 sidrapy
 types-requests
+tabulate
 
