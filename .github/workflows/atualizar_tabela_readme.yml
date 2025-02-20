@@ -24,7 +24,7 @@ jobs:
           make install
 
       - name: Rodar script para atualizar o README
-        run: python atualizar_readme.py  # Supondo que o script seja "atualizar_readme.py"
+        run: python -m codigos_rodando.rodando_valuations # Supondo que o script seja "atualizar_readme.py"
       
       - name: Configure Git
         run: |

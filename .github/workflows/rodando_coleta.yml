@@ -25,7 +25,7 @@ jobs:
     - name: Rodando Valuation
       run: |
         pwd
-        python rodando_valuations.py
+        python -m codigos_rodando.atualizar_readme
     
     - name: Configure Git
       run: |

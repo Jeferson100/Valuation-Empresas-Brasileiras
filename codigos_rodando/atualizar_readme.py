@@ -24,6 +24,8 @@ readme_content.insert(index_inicio + 1, f"### Tabela de Valuation\n{markdown_tab
 
 with open('README.md', 'w') as file:
     file.writelines(readme_content)  
+    
+print('README.md atualizado com sucesso!')
 
 
 
