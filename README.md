@@ -88,9 +88,16 @@ A aplicação integra cálculos financeiros e indicadores por meio de módulos e
     - Retorna métricas de crescimento da receita (média e mediana), tanto nominais quanto deflacionadas.
 
 
-- **[rodando_valuations.py](https://github.com/Jeferson100/Valuation-Empresas-Brasileiras/blob/main/rodando_valuations.py)**  
+- **[codigos_rondando](https://github.com/Jeferson100/Valuation-Empresas-Brasileiras/tree/main/codigos_rodando)** 
+
+  Essa pasta contem dos arquivos:
+
+
+- `rodando_valuations.py`:
   Script principal que integra os módulos, lê os dados de entrada, executa os cálculos de valuation para cada ação e gera um relatório com os resultados.
 
+- `atualizar_readme.py`: 
+  Script que atualiza a tabela no README.md com os resultados dos cálculos de valuation. Esse script deve ser executado sempre que os cálculos forem concluídos.
 
 ## Contribuições
 
