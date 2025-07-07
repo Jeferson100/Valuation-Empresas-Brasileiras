@@ -74,9 +74,10 @@ for acao in acoes:
         data_valuation['outros_ativos'].append(indicadores['outrosativos'])
         data_valuation['passivos_menos_divida'].append(indicadores['passivosmenosdivida'])
         data_valuation['percentual_imposto'].append(indicadores['percentualimposto'])
-    except:
+    except Exception as e:
         print(f'Erro ao obter dados da acao {acao}: {e}')
         traceback.print_exc()  # Mostra o erro detalhado
+        
 data_valores = pd.DataFrame(data_valuation)
 
 data_valores.sort_values(by=['diferenca_gordon', 'diferenca_fluxo'], ascending=False).to_csv('../dados/valores_valuations_acoes.csv', index=False)
