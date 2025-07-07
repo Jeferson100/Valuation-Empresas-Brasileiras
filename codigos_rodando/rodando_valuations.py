@@ -1,12 +1,14 @@
 import pandas as pd
 import yfinance as yf
-from fundamentos import ValuationModoloGordon, ValuationFluxoCaixaDescontado, IndicadoresFinanceiros
 import warnings
+import sys
+sys.path.append('..')
+from fundamentos import ValuationModoloGordon, ValuationFluxoCaixaDescontado, IndicadoresFinanceiros
 
 warnings.filterwarnings("ignore")
 
 
-acoes= pd.read_csv("dados/setor.csv")['tic'].to_list()
+acoes= pd.read_csv("https://raw.githubusercontent.com/Jeferson100/fundamentalist-stock-brazil/main/dados/setor.csv")['tic'].to_list()
 data_valuation = {
     'acao': [],
     'valor_atual':[],
@@ -75,4 +77,4 @@ for acao in acoes:
         print(f'Erro ao obter dados da acao {acao}')
 data_valores = pd.DataFrame(data_valuation)
 
-data_valores.sort_values(by=['diferenca_gordon', 'diferenca_fluxo'], ascending=False).to_csv('dados/valores_valuations_acoes.csv', index=False)
+data_valores.sort_values(by=['diferenca_gordon', 'diferenca_fluxo'], ascending=False).to_csv('../dados/valores_valuations_acoes.csv', index=False)

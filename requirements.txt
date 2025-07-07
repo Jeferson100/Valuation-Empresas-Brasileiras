@@ -22,7 +22,7 @@ pyright
 pandas-stubs 
 ruff
 aiohttp==3.11.11
-yfinance==0.2.54
+yfinance==0.2.65
 unidecode
 finta
 matplotlib
