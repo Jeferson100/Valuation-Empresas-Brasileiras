@@ -1,6 +1,8 @@
 import pandas as pd
 import yfinance as yf
 import warnings
+import os
+from pathlib import Path
 import sys
 import traceback
 sys.path.append('..')
@@ -8,8 +10,13 @@ from fundamentos import ValuationModoloGordon, ValuationFluxoCaixaDescontado, In
 
 warnings.filterwarnings("ignore")
 
+# Garantir que o diretório dados existe
+dados_dir = Path('../dados')
+dados_dir.mkdir(exist_ok=True)
+
 
 acoes= pd.read_csv("https://raw.githubusercontent.com/Jeferson100/fundamentalist-stock-brazil/main/dados/setor.csv")['tic'].to_list()
+
 data_valuation = {
     'acao': [],
     'valor_atual':[],
@@ -80,4 +87,7 @@ for acao in acoes:
         
 data_valores = pd.DataFrame(data_valuation)
 
-data_valores.sort_values(by=['diferenca_gordon', 'diferenca_fluxo'], ascending=False).to_csv('../dados/valores_valuations_acoes.csv', index=False)
+# Salvar arquivo
+arquivo_saida = dados_dir / 'valores_valuations_acoes.csv'
+
+data_valores.sort_values(by=['diferenca_gordon', 'diferenca_fluxo'], ascending=False).to_csv(arquivo_saida, index=False)
