@@ -1,31 +1,48 @@
+"""Atualiza apenas a secao de resultados do README.
+
+Le o CSV gerado pelo pipeline e substitui o bloco entre os marcadores
+``<!-- VALUATION:START -->`` e ``<!-- VALUATION:END -->``. Os caminhos sao
+resolvidos a partir do arquivo, entao o script funciona de qualquer diretorio.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
 import pandas as pd
 
-# Lê o arquivo CSV
-df = pd.read_csv('dados/valores_valuations_acoes.csv')
+RAIZ = Path(__file__).resolve().parents[1]
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
 
-# Converte o DataFrame para tabela em Markdown
-markdown_table = df.to_markdown(index=False)
-
-# Abre o arquivo README.md
-with open('README.md', 'r') as file:
-    readme_content = file.readlines()
-
-# Verifica e localiza a seção "Resultados das Estimativas"
-section_found = False
-for i, line in enumerate(readme_content):
-    if '## Resultados das Estimativas' in line:
-        index_inicio = i
-    if '## Fim' in line:
-        index_fim = i
-
-readme_content = readme_content[:index_inicio+1] + readme_content[index_fim-1:]
-        
-readme_content.insert(index_inicio + 1, f"### Tabela de Valuation\n{markdown_table}\n")
-
-with open('README.md', 'w') as file:
-    file.writelines(readme_content)  
-    
-print('README.md atualizado com sucesso!')
+from valuation.pipeline.config import carregar_config  # noqa: E402
+from valuation.pipeline.relatorio import atualizar_readme  # noqa: E402
 
 
+def main() -> int:
+    """Le ``dados/valores_valuations_acoes.csv`` e reescreve o README."""
+    csv = RAIZ / "dados" / "valores_valuations_acoes.csv"
+    readme = RAIZ / "README.md"
+    config = carregar_config(RAIZ / "config.yaml")
 
+    if not csv.exists():
+        print(f"CSV nao encontrado: {csv}", file=sys.stderr)
+        return 1
+
+    dados = pd.read_csv(csv)
+    if "status" not in dados.columns:
+        print(
+            f"{csv} esta no formato antigo (sem coluna 'status'). "
+            "Rode o pipeline antes de atualizar o README.",
+            file=sys.stderr,
+        )
+        return 1
+
+    atualizar_readme(readme, dados, top=config.top_readme)
+    print(f"README atualizado: {readme}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

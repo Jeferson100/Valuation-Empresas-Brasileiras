@@ -1,0 +1,48 @@
+# Premissas globais do valuation.
+#
+# Todos os valores sao nominais (a.a.), consistentes com projecoes em R$ correntes.
+# Alterar este arquivo muda o resultado; o hash das premissas vai para o CSV.
+
+# Taxa livre de risco: Swap DI 360x12 (BM&F), media recente.
+rf: 0.105
+
+# Premio de risco: ERP de mercado maduro (~4,5%) + premio de risco pais Brasil (~3,0%).
+erp: 0.075
+
+# Custo da divida usado quando a despesa financeira nao esta disponivel.
+kd_fallback: 0.125
+
+# Horizonte explicito de projecao e crescimento na perpetuidade (IPCA de longo prazo).
+anos_projecao: 5
+g_perpetuidade: 0.030
+
+# Margem de seguranca aplicada ao piso da faixa (P25) para a recomendacao.
+margem_seguranca: 0.25
+
+# Acima deste upside absoluto o resultado e marcado como absurdo e sai do ranking.
+upside_max: 0.90
+
+# Convencao de meio de ano no desconto (mais aderente, mas conservadora na comparacao).
+meio_ano: false
+
+# Portao de atualidade do preco e validade do cache de dados.
+dias_ultimo_pregao: 5
+ttl_cache_dias: 1
+
+# Quantidade de linhas na tabela do README.
+top_readme: 20
+
+# Beta desalavancado por setor (referencias de Damodaran, ajustadas para o Brasil).
+# A comparacao ignora acentos e maiusculas.
+beta_u_padrao: 0.85
+beta_u_setorial:
+  Financeiro: 0.55
+  Utilidade Publica: 0.45
+  Materiais Basicos: 0.90
+  Consumo Ciclico: 0.85
+  Consumo nao Ciclico: 0.65
+  Bens Industriais: 0.80
+  Saude: 0.70
+  Tecnologia da Informacao: 0.95
+  Comunicacoes: 0.75
+  Petroleo. Gas e Biocombustiveis: 0.95

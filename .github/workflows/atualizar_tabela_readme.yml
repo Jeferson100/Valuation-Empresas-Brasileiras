@@ -7,38 +7,48 @@ on:
       - completed
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: readme-valuation
+  cancel-in-progress: false
+
 jobs:
   update-readme:
+    # So atualiza o README quando a coleta terminou com sucesso.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check out o repositório
-        uses: actions/checkout@v2
+      - name: Check out o repositorio
+        uses: actions/checkout@v4
 
       - name: Configurar Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.12"
+          cache: pip
 
-      - name: Instalar dependências
+      - name: Instalar dependencias
         run: |
-          make install
+          python -m pip install --upgrade pip
+          python -m pip install -e .
 
       - name: Rodar script para atualizar o README
-        run: python -m codigos_rodando.atualizar_readme # Supondo que o script seja "atualizar_readme.py"
-      
+        run: python -m codigos_rodando.atualizar_readme
+
       - name: Configure Git
         run: |
-          git config --global user.email "sehnemjeferson@gmail.com"
-          git config --global user.name "Jeferson Sehnem"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Commit and push changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.VALUATION_EMPRESAS }}
         run: |
-          git add .
-          if git diff-index --quiet HEAD; then
-              echo "No changes to commit"
-          exit 0
+          git add README.md
+          if git diff --quiet --cached; then
+            echo "No changes to commit"
+            exit 0
           fi
-          git commit -m "Coletando dre em: $(date +'%Y-%m-%d')"
-          git push https://Jeferson100:${{ secrets.VALUATION_EMPRESAS }}@github.com/Jeferson100/Valuation-Empresas-Brasileiras.git HEAD:main
+          git commit -m "Atualiza tabela do README: $(date +'%Y-%m-%d')"
+          git push

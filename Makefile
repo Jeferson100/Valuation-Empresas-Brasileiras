@@ -1,33 +1,31 @@
+PYTHON ?= python
+
 uvinstall:
-	pip install uv && \
-	uv pip install --upgrade pip && \
-		uv pip install -r requirements.txt
+	$(PYTHON) -m pip install uv
+	$(PYTHON) -m uv pip install --upgrade pip
+	$(PYTHON) -m uv pip install -e ".[dev]"
 
 install:
-	pip install --upgrade pip && \
-		pip install -r requirements.txt
+	$(PYTHON) -m pip install --upgrade pip
+	$(PYTHON) -m pip install -e ".[dev]"
 
 format:
-	black fundamentos/*.py
-
-ruff_format:
-	ruff format fundamentos/*.py
+	$(PYTHON) -m ruff format valuation tests
+	$(PYTHON) -m ruff check --fix valuation tests
 
 lint:
-	pylint --disable=R,C fundamentos/*.py
+	$(PYTHON) -m ruff check valuation tests
 
-ruff_lint:
-	ruff check fundamentos/*.py
-
-typepyright:
-	pyright fundamentos/*.py
-
-typemypy:
-	mypy fundamentos/
+typecheck:
+	$(PYTHON) -m mypy valuation
 
 test:
-	python -m pytest -vv --cov=tests/test_*.py
+	$(PYTHON) -m pytest --cov=valuation --cov-report=term-missing
 
-refactor: format lint
+test-fast:
+	$(PYTHON) -m pytest -m "not network"
 
-all: install format lint typepyright typemypy ruff_format ruff_lint
+valuation:
+	$(PYTHON) -m valuation.pipeline.run
+
+all: format lint typecheck test
