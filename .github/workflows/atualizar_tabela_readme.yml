@@ -19,6 +19,7 @@ jobs:
     # So atualiza o README quando a coleta terminou com sucesso.
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Check out o repositorio

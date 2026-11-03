@@ -6,10 +6,10 @@ Um ticker nunca "desaparece": ou entra no CSV com um ``Status``, ou entra em
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 
-class Status(str, Enum):
+class Status(StrEnum):
     """Estado de uma avaliacao. Sempre presente na saida."""
 
     OK = "ok"

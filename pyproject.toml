@@ -15,7 +15,7 @@ dependencies = [
     "pydantic>=2.9",
     "PyYAML>=6.0",
     "tabulate>=0.9",
-    "yfinance>=0.2.58",
+    "yfinance>=0.2.58,<2",
     "ipeadatapy",
     "sidrapy",
 ]
@@ -24,7 +24,7 @@ dependencies = [
 dev = [
     "pytest>=8",
     "pytest-cov>=5",
-    "ruff>=0.9",
+    "ruff>=0.17,<0.18",
     "mypy>=1.11",
     "pandas-stubs",
     "types-requests",
