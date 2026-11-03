@@ -51,7 +51,10 @@ class YFinanceProvider:
             if snapshots:
                 caminho = snapshots[-1]
                 if self._fresco(caminho):
-                    return self._carregar(caminho.parent)
+                    try:
+                        return self._carregar(caminho.parent)
+                    except Exception as exc:
+                        log.warning("%s: cache ilegivel, baixando de novo: %s", ticker, exc)
 
         if self.offline:
             raise ErroDados(f"modo offline e sem cache para {ticker}")
@@ -125,18 +128,31 @@ class YFinanceProvider:
         return idade < self.ttl
 
     def _salvar(self, snapshot: SnapshotFinanceiro) -> None:
+        """Grava o snapshot em parquet.
+
+        O cache e otimizacao, nao requisito: se a gravacao falhar (motor
+        parquet ausente, disco cheio), a coleta segue sem cache em vez de
+        derrubar o ticker. O ``snapshot.json`` e gravado por ultimo, entao um
+        diretorio parcial nunca e lido como cache valido.
+        """
         destino = self.cache_dir / snapshot.ticker / snapshot.as_of.isoformat()
-        destino.mkdir(parents=True, exist_ok=True)
 
-        snapshot.financials.to_parquet(destino / "financials.parquet")
-        snapshot.balance.to_parquet(destino / "balance.parquet")
-        snapshot.cashflow.to_parquet(destino / "cashflow.parquet")
-        snapshot.history.to_frame("close").to_parquet(destino / "history.parquet")
-        snapshot.dividends.to_frame("dividend").to_parquet(destino / "dividends.parquet")
+        try:
+            destino.mkdir(parents=True, exist_ok=True)
 
-        meta = {"ticker": snapshot.ticker, "as_of": snapshot.as_of.isoformat()}
-        (destino / "snapshot.json").write_text(json.dumps(meta), encoding="utf-8")
-        (destino / "info.json").write_text(json.dumps(snapshot.info, default=str), encoding="utf-8")
+            snapshot.financials.to_parquet(destino / "financials.parquet")
+            snapshot.balance.to_parquet(destino / "balance.parquet")
+            snapshot.cashflow.to_parquet(destino / "cashflow.parquet")
+            snapshot.history.to_frame("close").to_parquet(destino / "history.parquet")
+            snapshot.dividends.to_frame("dividend").to_parquet(destino / "dividends.parquet")
+
+            meta = {"ticker": snapshot.ticker, "as_of": snapshot.as_of.isoformat()}
+            (destino / "snapshot.json").write_text(json.dumps(meta), encoding="utf-8")
+            (destino / "info.json").write_text(
+                json.dumps(snapshot.info, default=str), encoding="utf-8"
+            )
+        except Exception as exc:
+            log.warning("%s: nao foi possivel gravar o cache: %s", snapshot.ticker, exc)
 
     def _carregar(self, pasta: Path) -> SnapshotFinanceiro:
         meta = json.loads((pasta / "snapshot.json").read_text(encoding="utf-8"))

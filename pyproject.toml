@@ -12,6 +12,9 @@ license = { text = "Apache-2.0" }
 dependencies = [
     "numpy>=1.26",
     "pandas>=2.2",
+    # Motor do cache em parquet (provider e IPCA). Sem ele o pandas levanta
+    # ImportError em to_parquet/read_parquet e a coleta inteira morre.
+    "pyarrow>=15",
     "pydantic>=2.9",
     "PyYAML>=6.0",
     "tabulate>=0.9",

@@ -25,7 +25,10 @@ def carregar_ipca_mensal(cache_dir: Path | str, offline: bool = False) -> pd.Ser
     cache = Path(cache_dir) / "ipca_mensal.parquet"
 
     if cache.exists():
-        return pd.read_parquet(cache)["ipca"]
+        try:
+            return pd.read_parquet(cache)["ipca"]
+        except Exception as exc:
+            log.warning("cache do IPCA ilegivel, baixando de novo: %s", exc)
 
     if offline:
         log.warning("modo offline e sem cache de IPCA")
@@ -63,8 +66,14 @@ def carregar_ipca_mensal(cache_dir: Path | str, offline: bool = False) -> pd.Ser
     serie = pd.Series(valores.to_numpy(), index=indice).dropna().sort_index()
     serie.name = "ipca"
 
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    serie.to_frame().to_parquet(cache)
+    # O IPCA e opcional (sem ele o crescimento fica nominal), entao uma falha
+    # de cache nao pode derrubar a coleta inteira.
+    try:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        serie.to_frame().to_parquet(cache)
+    except Exception as exc:
+        log.warning("nao foi possivel gravar o cache do IPCA: %s", exc)
+
     return serie
 
 
