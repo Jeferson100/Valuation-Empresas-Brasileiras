@@ -155,35 +155,35 @@ para mais detalhes.
 
 | acao   | setor               |   preco_atual |   preco_alvo_p25 |   preco_alvo_p50 |   preco_alvo_p75 |   upside_p50 |   margem_seguranca | recomendacao   |   wacc |   g_perpetuidade |
 |:-------|:--------------------|--------------:|-----------------:|-----------------:|-----------------:|-------------:|-------------------:|:---------------|-------:|-----------------:|
-| CYRE3  | Consumo Cíclico     |         17.09 |            23.66 |            26.40 |            29.78 |        54.45 |              25.00 | compra         |   0.16 |             0.03 |
-| TRIS3  | Consumo Cíclico     |          4.16 |             5.87 |             6.27 |             6.76 |        50.83 |              25.00 | compra         |   0.15 |             0.03 |
-| CMIG4  | Utilidade Pública   |         10.07 |            13.35 |            14.94 |            17.02 |        48.36 |              25.00 | neutro         |   0.13 |             0.03 |
-| BRAP3  | Materiais Básicos   |         17.06 |            22.58 |            22.93 |            23.36 |        34.40 |              25.00 | neutro         |   0.17 |             0.03 |
-| CAMB3  | Consumo Cíclico     |          7.02 |             8.77 |             9.39 |            10.10 |        33.73 |              25.00 | neutro         |   0.17 |             0.03 |
-| BGIP4  | Financeiro          |         31.55 |            37.90 |            40.71 |            43.41 |        29.02 |              25.00 | neutro         |   0.15 |             0.03 |
-| BMKS3  | Consumo Cíclico     |        350.00 |           436.70 |           442.15 |           448.42 |        26.33 |              25.00 | neutro         |   0.17 |             0.03 |
-| BRAP4  | Materiais Básicos   |         18.27 |            22.58 |            22.93 |            23.36 |        25.50 |              25.00 | neutro         |   0.17 |             0.03 |
-| BBAS3  | Financeiro          |         16.47 |            18.59 |            20.31 |            22.25 |        23.33 |              25.00 | neutro         |   0.17 |             0.03 |
-| CEBR6  | Utilidade Pública   |         26.39 |            30.19 |            32.09 |            34.54 |        21.59 |              25.00 | neutro         |   0.14 |             0.03 |
-| BBDC3  | Financeiro          |         12.71 |            14.02 |            15.30 |            16.92 |        20.39 |              25.00 | neutro         |   0.19 |             0.03 |
-| MDIA3  | Consumo não Cíclico |         15.35 |            17.09 |            18.24 |            19.58 |        18.80 |              25.00 | neutro         |   0.16 |             0.03 |
-| BBDC4  | Financeiro          |         13.86 |            15.03 |            16.39 |            18.11 |        18.28 |              25.00 | neutro         |   0.19 |             0.03 |
-| FESA4  | Materiais Básicos   |          5.00 |             5.13 |             5.51 |             5.94 |        10.15 |              25.00 | neutro         |   0.17 |             0.03 |
-| LOGG3  | Financeiro          |         20.23 |            20.32 |            22.15 |            24.44 |         9.47 |              25.00 | neutro         |   0.12 |             0.03 |
-| AZZA3  | Consumo Cíclico     |         14.33 |            13.26 |            15.15 |            17.53 |         5.72 |              25.00 | caro           |   0.18 |             0.03 |
-| LREN3  | Consumo Cíclico     |          8.98 |             8.26 |             8.89 |             9.71 |        -1.06 |              25.00 | caro           |   0.17 |             0.03 |
-| JHSF3  | Consumo Cíclico     |          8.97 |             7.58 |             8.62 |             9.92 |        -3.91 |              25.00 | caro           |   0.16 |             0.03 |
-| BRSR6  | Financeiro          |         12.36 |            10.14 |            11.07 |            11.84 |       -10.43 |              25.00 | caro           |   0.18 |             0.03 |
-| CMIG3  | Utilidade Pública   |         16.45 |            13.07 |            14.60 |            16.59 |       -11.22 |              25.00 | caro           |   0.13 |             0.03 |
+| GOAU4  | Materiais Básicos   |         11.25 |            19.31 |            21.31 |            23.83 |        89.46 |              25.00 | compra         |   0.15 |             0.03 |
+| CYRE3  | Consumo Cíclico     |         16.65 |            23.69 |            26.43 |            29.81 |        58.71 |              25.00 | compra         |   0.16 |             0.03 |
+| TRIS3  | Consumo Cíclico     |          4.10 |             5.87 |             6.28 |             6.77 |        53.15 |              25.00 | compra         |   0.15 |             0.03 |
+| CMIG4  | Utilidade Pública   |         10.00 |            13.36 |            14.94 |            17.03 |        49.45 |              25.00 | compra         |   0.13 |             0.03 |
+| CAMB3  | Consumo Cíclico     |          6.95 |             8.77 |             9.39 |            10.09 |        35.05 |              25.00 | neutro         |   0.17 |             0.03 |
+| BRAP3  | Materiais Básicos   |         17.39 |            22.58 |            22.93 |            23.36 |        31.85 |              25.00 | neutro         |   0.17 |             0.03 |
+| BGIP4  | Financeiro          |         32.01 |            37.90 |            40.71 |            43.41 |        27.17 |              25.00 | neutro         |   0.15 |             0.03 |
+| BMKS3  | Consumo Cíclico     |        353.46 |           436.70 |           442.15 |           448.42 |        25.09 |              25.00 | neutro         |   0.17 |             0.03 |
+| BRAP4  | Materiais Básicos   |         18.50 |            22.58 |            22.93 |            23.36 |        23.94 |              25.00 | neutro         |   0.17 |             0.03 |
+| BBAS3  | Financeiro          |         16.41 |            18.59 |            20.31 |            22.25 |        23.78 |              25.00 | neutro         |   0.17 |             0.03 |
+| CEBR6  | Utilidade Pública   |         26.50 |            30.19 |            32.09 |            34.54 |        21.08 |              25.00 | neutro         |   0.14 |             0.03 |
+| BBDC3  | Financeiro          |         12.75 |            14.02 |            15.30 |            16.92 |        20.01 |              25.00 | neutro         |   0.19 |             0.03 |
+| MDIA3  | Consumo não Cíclico |         15.34 |            17.09 |            18.24 |            19.58 |        18.88 |              25.00 | neutro         |   0.16 |             0.03 |
+| BBDC4  | Financeiro          |         13.83 |            15.03 |            16.39 |            18.11 |        18.54 |              25.00 | neutro         |   0.19 |             0.03 |
+| FESA4  | Materiais Básicos   |          5.04 |             5.13 |             5.51 |             5.94 |         9.27 |              25.00 | neutro         |   0.17 |             0.03 |
+| LOGG3  | Financeiro          |         20.29 |            20.32 |            22.15 |            24.44 |         9.14 |              25.00 | neutro         |   0.12 |             0.03 |
+| AZZA3  | Consumo Cíclico     |         14.13 |            13.25 |            15.14 |            17.52 |         7.15 |              25.00 | caro           |   0.18 |             0.03 |
+| LREN3  | Consumo Cíclico     |          8.87 |             8.26 |             8.89 |             9.71 |         0.20 |              25.00 | caro           |   0.17 |             0.03 |
+| JHSF3  | Consumo Cíclico     |          9.00 |             7.58 |             8.62 |             9.92 |        -4.25 |              25.00 | caro           |   0.16 |             0.03 |
+| CMIG3  | Utilidade Pública   |         16.04 |            13.09 |            14.62 |            16.61 |        -8.85 |              25.00 | caro           |   0.13 |             0.03 |
 
-**Cobertura:** 144 tickers no universo, 102 com `status=ok`.
+**Cobertura:** 144 tickers no universo, 103 com `status=ok`.
 Preços-alvo em R$; `upside` e `margem de segurança` em %.
 
 | status | tickers |
 |---|---:|
-| `ok` | 102 |
+| `ok` | 103 |
 | `nao_avaliavel` | 17 |
-| `resultado_absurdo` | 13 |
+| `resultado_absurdo` | 12 |
 | `wacc_invalido` | 10 |
 | `dados_insuficientes` | 2 |
 
