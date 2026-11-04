@@ -62,3 +62,18 @@ jobs:
           fi
           git commit -m "Coleta de valuation: $(date +'%Y-%m-%d')"
           git push
+
+      # Roda mesmo quando a coleta quebra: nesse caso o modulo manda um email
+      # [FALHA] com o resumo de dados/erros.csv. Sem os secrets configurados o
+      # envio vira no-op, entao o fork/PR continua funcionando.
+      - name: Enviar relatorio por email
+        if: always()
+        continue-on-error: true
+        env:
+          SMTP_USUARIO: ${{ secrets.SMTP_USUARIO }}
+          SMTP_SENHA: ${{ secrets.SMTP_SENHA }}
+          EMAIL_PARA: ${{ secrets.EMAIL_PARA }}
+        run: |
+          python -m valuation.pipeline.email \
+            --csv dados/valores_valuations_acoes.csv \
+            --erros dados/erros.csv

@@ -322,10 +322,14 @@ def main(argv: list[str] | None = None) -> int:
     resultado = pd.DataFrame(linhas)
     salvar_csv(resultado, args.saida)
 
+    caminho_erros = args.saida.parent / "erros.csv"
     if erros:
-        caminho_erros = args.saida.parent / "erros.csv"
         pd.DataFrame(erros).to_csv(caminho_erros, index=False, encoding="utf-8")
         log.warning("%d tickers falharam na coleta: %s", len(erros), caminho_erros)
+    elif caminho_erros.exists():
+        # Sem falhas, o arquivo da execucao anterior nao pode sobreviver: o
+        # relatorio por email anexaria erros que ja foram resolvidos.
+        caminho_erros.unlink()
 
     if not args.sem_readme:
         atualizar_readme(args.readme, resultado, top=config.top_readme)

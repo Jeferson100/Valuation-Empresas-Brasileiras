@@ -176,3 +176,4 @@ cython_debug/
 # Artefatos do pipeline de valuation
 dados/cache/
 dados/erros.csv
+dados/relatorio_email.html

@@ -58,7 +58,7 @@ valuation/
     └── run.py         # CLI e execução completa
 
 config.yaml            # premissas de mercado e betas setoriais
-tests/                 # 56 testes, sem rede
+tests/                 # 88 testes, sem rede
 dados/setor.csv        # universo de tickers (setor e segmento)
 dados/valores_valuations_acoes.csv   # saída do pipeline
 fundamentos/           # implementação antiga, obsoleta (não é usada)
@@ -116,6 +116,33 @@ lint, tipos e testes em Python 3.11 e 3.12 a cada push e pull request.
   e do README.
 - **`atualizar_tabela_readme.yml`** — roda depois que a coleta termina com
   sucesso e atualiza apenas o bloco de resultados do README.
+
+## Relatório por email
+
+A coleta mensal envia um relatório HTML com o resumo por status, o top 20 por
+upside e o CSV completo em anexo. Se a execução falhar, o email sai como
+`[FALHA]` com o resumo de `dados/erros.csv`.
+
+Para ativar, crie três *secrets* em **Settings → Secrets and variables →
+Actions**:
+
+| Secret | Conteúdo |
+|---|---|
+| `SMTP_USUARIO` | conta que envia (Gmail) |
+| `SMTP_SENHA` | senha de app de 16 caracteres |
+| `EMAIL_PARA` | destinatário do relatório |
+
+A senha de app exige verificação em duas etapas ativa e é gerada em
+[myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) —
+a senha normal da conta não funciona por SMTP. Sem os três secrets o envio vira
+um no-op com `warning`, então o pipeline continua funcionando.
+
+Para ver o relatório sem enviar nada:
+
+```bash
+python -m valuation.pipeline.email --dry-run
+# grava dados/relatorio_email.html
+```
 
 ## Interpretando o CSV
 
