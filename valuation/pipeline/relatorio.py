@@ -60,6 +60,21 @@ COLUNAS_SAIDA = [
     "equity_value",
     "num_acoes",
     "fator_cambio",
+    # Segundo valuation, alimentado pela projecao de receita. Fica no fim para
+    # nao deslocar as colunas que o relatorio e o email ja consomem.
+    "market_cap",
+    "modelo_receita",
+    "crescimento_receita_ajustado",
+    "peso_empresa",
+    "preco_receita_p25",
+    "preco_receita_p50",
+    "preco_receita_p75",
+    "upside_receita_p50",
+    "recomendacao_receita",
+    "ev_receita",
+    "equity_value_receita",
+    "status_receita",
+    "flags_receita",
 ]
 
 COLUNAS_README = [
@@ -92,7 +107,7 @@ def salvar_csv(df: pd.DataFrame, destino: Path | str) -> Path:
     saida = saida.assign(_ordem=ordenacao).sort_values("_ordem", ascending=False)
     saida = saida.drop(columns="_ordem")
 
-    saida.to_csv(destino, index=False, encoding="utf-8")
+    saida.to_csv(destino, index=False, encoding="utf-8", lineterminator="\n")
     return destino
 
 
@@ -151,7 +166,10 @@ def atualizar_readme(caminho: Path | str, df: pd.DataFrame, top: int = 20) -> No
     else:
         texto = texto.rstrip() + "\n\n" + bloco + "\n"
 
-    caminho.write_text(texto, encoding="utf-8")
+    # newline="\n" mantem o README em LF tambem no Windows: sem isso, o
+    # write_text traduz para CRLF e o arquivo inteiro aparece como alterado.
+    with caminho.open("w", encoding="utf-8", newline="\n") as arquivo:
+        arquivo.write(texto)
     log.info("README atualizado: %s", caminho)
 
 

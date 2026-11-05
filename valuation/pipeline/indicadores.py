@@ -263,11 +263,21 @@ def montar_indicadores(
     )
 
 
-def premissas_dcf(indicadores: Indicadores, wacc: float, config: Config) -> PremissasDCF:
-    """Monta as premissas do FCFF a partir dos indicadores."""
+def premissas_dcf(
+    indicadores: Indicadores,
+    wacc: float,
+    config: Config,
+    crescimento_por_ano: tuple[float, ...] | None = None,
+) -> PremissasDCF:
+    """Monta as premissas do FCFF a partir dos indicadores.
+
+    ``crescimento_por_ano`` e opcional: quando ausente, o DCF usa o fade linear
+    sobre o crescimento historico (valuation oficial).
+    """
     return PremissasDCF(
         receita_base=indicadores.receita_base,
         crescimento_receita=indicadores.crescimento_receita,
+        crescimento_por_ano=crescimento_por_ano,
         margem_ebit=indicadores.margem_ebit,
         aliquota=indicadores.aliquota,
         da_receita=indicadores.da_receita,

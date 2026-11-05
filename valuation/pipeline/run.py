@@ -1,5 +1,9 @@
 """CLI e orquestracao da coleta de valuation.
 
+O valuation oficial continua sendo o DCF de crescimento historico (media dos
+ultimos anos). A previsao de receita alimenta um SEGUNDO DCF, publicado em
+colunas proprias, sem tocar em preco-alvo, recomendacao ou ranking.
+
 Uso:
     python -m valuation.pipeline.run
     python -m valuation.pipeline.run --tickers PETR4,VALE3 -v
@@ -14,6 +18,7 @@ import logging
 import math
 from datetime import date
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -40,6 +45,14 @@ from .indicadores import (
     premissas_dcf,
     premissas_ddm,
 )
+from .receita import (
+    atualizar_com_snapshots,
+    carregar_macro,
+    carregar_receitas,
+    gravar_artefatos,
+    montar_painel,
+    prever_receitas,
+)
 from .relatorio import atualizar_readme, salvar_csv
 from .validacoes import MODELO_DCF, MODELO_DDM, recomendacao, validar_resultado
 
@@ -58,9 +71,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--saida", type=Path, default=RAIZ / "dados" / "valores_valuations_acoes.csv"
     )
     parser.add_argument("--cache", type=Path, default=RAIZ / "dados" / "cache")
+    parser.add_argument(
+        "--receitas",
+        type=Path,
+        default=RAIZ / "dados" / "receitas_historicas.csv",
+        help="painel historico de receitas da CVM",
+    )
     parser.add_argument("--readme", type=Path, default=RAIZ / "README.md")
     parser.add_argument("--offline", action="store_true", help="usa apenas o cache")
     parser.add_argument("--sem-readme", action="store_true", help="nao atualiza o README")
+    parser.add_argument(
+        "--sem-previsao",
+        action="store_true",
+        help="pula o cenario de receita projetada",
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     return parser.parse_args(argv)
 
@@ -103,16 +127,40 @@ def _linha_base(
     }
 
 
+def _dcf_por_receita(
+    indicadores: Indicadores,
+    wacc: float,
+    config: Config,
+    crescimento_por_ano: tuple[float, ...],
+) -> dict[str, object]:
+    """Segundo DCF: mesmo FCFF, trocando so o vetor de crescimento."""
+    premissas = premissas_dcf(indicadores, wacc, config, crescimento_por_ano=crescimento_por_ano)
+    resultado = avaliar_dcf(premissas)
+    grade = grade_sensibilidade(premissas)
+    p25, p50, p75 = faixa_preco(grade)
+    return {
+        "preco_receita_p25": p25,
+        "preco_receita_p50": p50,
+        "preco_receita_p75": p75,
+        "upside_receita_p50": p50 / indicadores.preco_atual - 1.0,
+        "recomendacao_receita": recomendacao(p25, indicadores.preco_atual, config.margem_seguranca),
+        "ev_receita": resultado.ev,
+        "equity_value_receita": resultado.equity,
+        "status_receita": Status.OK.value,
+        "flags_receita": "",
+    }
+
+
 def avaliar_acao(
     acao: str,
     setor: str,
     segmento: str,
-    provider: YFinanceProvider,
+    snapshot: SnapshotFinanceiro,
     config: Config,
     indice_ipca: pd.Series | None,
+    projecao: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Avalia um ticker e devolve a linha do CSV (sempre com status)."""
-    snapshot = provider.obter(f"{acao}.SA")
     financeira = eh_financeiro(setor)
     modelo = MODELO_DDM if financeira else MODELO_DCF
 
@@ -126,13 +174,19 @@ def avaliar_acao(
             fator_cambio,
             origem_cambio,
         )
+
     indicadores = montar_indicadores(snapshot, setor, indice_ipca, config, fator_cambio)
+
+    crescimento_por_ano: tuple[float, ...] | None = None
+    if projecao is not None:
+        crescimento_por_ano = cast(tuple[float, ...], projecao["crescimento_por_ano"])
 
     linha = _linha_base(acao, setor, segmento, snapshot, config)
     linha.update(
         {
             "preco_atual": indicadores.preco_atual,
             "fator_cambio": indicadores.fator_cambio,
+            # Coluna historica: nao muda.
             "g_receita": indicadores.crescimento_receita,
             "margem_ebit": indicadores.margem_ebit,
             "capex_receita": indicadores.capex_receita,
@@ -145,6 +199,15 @@ def avaliar_acao(
             "divida_liquida": indicadores.divida_liquida,
             "ativos_nao_operacionais": indicadores.ativos_nao_operacionais,
             "num_acoes": indicadores.num_acoes,
+            "market_cap": _market_cap(snapshot, indicadores),
+            # Transparencia do modelo, mesmo quando ele nao alimenta o preco.
+            "modelo_receita": (str(projecao["modelo_receita"]) if projecao else "historico"),
+            "crescimento_receita_ajustado": (
+                crescimento_por_ano[0] if crescimento_por_ano else indicadores.crescimento_receita
+            ),
+            "peso_empresa": (
+                float(cast(float, projecao["peso_empresa"])) if projecao else float("nan")
+            ),
         }
     )
 
@@ -178,6 +241,7 @@ def avaliar_acao(
             p25, p50, p75 = faixa_preco(grade)
             linha["preco_ddm"] = preco_ddm
         else:
+            # Valuation oficial: crescimento historico, como sempre foi.
             dcf = premissas_dcf(indicadores, resultado_wacc.wacc, config)
             resultado_dcf = avaliar_dcf(dcf)
             grade = grade_sensibilidade(dcf)
@@ -206,6 +270,33 @@ def avaliar_acao(
                 premissas_ddm(indicadores, resultado_wacc.ke, config)
             ).preco
 
+    # Segundo DCF: so a receita projetada muda. Falha aqui nao contamina o
+    # resultado oficial.
+    if config.publicar_modelo_receita and not financeira and crescimento_por_ano:
+        try:
+            linha.update(
+                _dcf_por_receita(
+                    indicadores,
+                    resultado_wacc.wacc,
+                    config,
+                    crescimento_por_ano,
+                )
+            )
+        except ErroValidacao as exc:
+            linha.update(
+                {
+                    "preco_receita_p25": float("nan"),
+                    "preco_receita_p50": float("nan"),
+                    "preco_receita_p75": float("nan"),
+                    "upside_receita_p50": float("nan"),
+                    "recomendacao_receita": "n/d",
+                    "ev_receita": float("nan"),
+                    "equity_value_receita": float("nan"),
+                    "status_receita": exc.status.value,
+                    "flags_receita": exc.detalhe,
+                }
+            )
+
     dias = _dias_uteis_desde(snapshot.data_ultimo_pregao, date.today())
     status, flags = validar_resultado(
         preco_alvo_p50=p50,
@@ -231,8 +322,47 @@ def avaliar_acao(
     return linha
 
 
+def _prever_mercado(
+    universo: pd.DataFrame,
+    snapshots: dict[str, SnapshotFinanceiro],
+    config: Config,
+    args: argparse.Namespace,
+) -> dict[str, dict[str, object]]:
+    """Fase 2: painel de receitas e projecao por ticker."""
+    if args.sem_previsao or not snapshots:
+        return {}
+
+    try:
+        receitas = carregar_receitas(args.receitas)
+        receitas = atualizar_com_snapshots(receitas, snapshots)
+        macro = carregar_macro(args.cache, offline=args.offline)
+        painel = montar_painel(receitas, macro, universo)
+
+        projecoes, historico, resumo, escolha = prever_receitas(
+            painel, config, config.previsao_receita.macro_futuro()
+        )
+        gravar_artefatos(projecoes, historico, resumo, args.saida.parent)
+    except (ErroDados, ValueError, KeyError) as exc:
+        log.warning("previsao de receita indisponivel: %s", exc)
+        return {}
+
+    log.info(
+        "previsao de receita: %d tickers; modelos por setor: %s",
+        len(projecoes),
+        escolha,
+    )
+    return {
+        str(linha.ticker): {
+            "crescimento_por_ano": cast(tuple[float, ...], linha.crescimento_por_ano),
+            "peso_empresa": float(cast(float, linha.peso_empresa)),
+            "modelo_receita": str(linha.modelo_receita),
+        }
+        for linha in projecoes.itertuples(index=False)
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
-    """Executa a coleta completa e grava CSV, erros e README."""
+    """Coleta tudo, projeta a receita e so entao avalia cada ticker."""
     args = parse_args(argv)
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
@@ -261,21 +391,50 @@ def main(argv: list[str] | None = None) -> int:
     if indice_ipca is None:
         log.warning("IPCA indisponivel: crescimento de receita sera nominal")
 
-    linhas: list[dict[str, object]] = []
-    erros: list[dict[str, object]] = []
     total = len(universo)
+    snapshots: dict[str, SnapshotFinanceiro] = {}
+    erros: list[dict[str, object]] = []
 
+    # Fase 1: coleta. Separar da avaliacao permite calcular mediana setorial e
+    # encolhimento antes de projetar qualquer ticker.
     for posicao, registro in enumerate(universo.itertuples(index=False), start=1):
         acao = str(registro.acao)
+        try:
+            snapshots[acao] = provider.obter(f"{acao}.SA")
+        except ErroDados as exc:
+            erros.append(
+                {
+                    "acao": acao,
+                    "etapa": "coleta",
+                    "excecao": str(exc),
+                    "data_coleta": date.today().isoformat(),
+                }
+            )
+            log.error("[%d/%d] %s: %s", posicao, total, acao, exc)
+        if posicao % 25 == 0:
+            log.info("coleta: %d/%d", posicao, total)
+
+    # Fase 2: previsao de receita, uma vez, com o painel inteiro.
+    projecoes = _prever_mercado(universo, snapshots, config, args)
+
+    # Fase 3: avaliacao.
+    linhas: list[dict[str, object]] = []
+    for posicao, registro in enumerate(universo.itertuples(index=False), start=1):
+        acao = str(registro.acao)
+        snapshot = snapshots.get(acao)
+        if snapshot is None:
+            continue
+
         try:
             linhas.append(
                 avaliar_acao(
                     acao=acao,
                     setor=str(registro.setor),
                     segmento=str(getattr(registro, "segmento", "") or ""),
-                    provider=provider,
+                    snapshot=snapshot,
                     config=config,
                     indice_ipca=indice_ipca,
+                    projecao=projecoes.get(acao),
                 )
             )
         except ErroValidacao as exc:
@@ -287,23 +446,13 @@ def main(argv: list[str] | None = None) -> int:
                     "as_of": date.today().isoformat(),
                     "data_coleta": date.today().isoformat(),
                     "premissas_hash": config.hash_premissas(),
-                    "modelo": MODELO_DDM if eh_financeiro(str(registro.setor)) else MODELO_DCF,
+                    "modelo": (MODELO_DDM if eh_financeiro(str(registro.setor)) else MODELO_DCF),
                     "status": exc.status.value,
                     "flags": exc.detalhe,
                     "recomendacao": "n/d",
                 }
             )
             log.info("[%d/%d] %s: %s", posicao, total, acao, exc)
-        except ErroDados as exc:
-            erros.append(
-                {
-                    "acao": acao,
-                    "etapa": "coleta",
-                    "excecao": str(exc),
-                    "data_coleta": date.today().isoformat(),
-                }
-            )
-            log.error("[%d/%d] %s: %s", posicao, total, acao, exc)
         except Exception as exc:  # bug inesperado: registra e segue
             erros.append(
                 {
@@ -317,21 +466,29 @@ def main(argv: list[str] | None = None) -> int:
 
         if posicao % 25 == 0:
             salvar_csv(pd.DataFrame(linhas), args.saida)
-            log.info("checkpoint: %d/%d processados", posicao, total)
+            log.info("checkpoint: %d/%d avaliados", posicao, total)
 
     resultado = pd.DataFrame(linhas)
+    if resultado.empty:
+        # Nao e fatal: a coleta pode ter falhado por completo (yfinance fora).
+        # O CSV vazio e o erros.csv contam a historia, e o job segue para o
+        # relatorio em vez de quebrar o agendamento mensal.
+        log.error("nenhum ticker avaliado")
+
     salvar_csv(resultado, args.saida)
 
     caminho_erros = args.saida.parent / "erros.csv"
     if erros:
-        pd.DataFrame(erros).to_csv(caminho_erros, index=False, encoding="utf-8")
+        pd.DataFrame(erros).to_csv(
+            caminho_erros, index=False, encoding="utf-8", lineterminator="\n"
+        )
         log.warning("%d tickers falharam na coleta: %s", len(erros), caminho_erros)
     elif caminho_erros.exists():
         # Sem falhas, o arquivo da execucao anterior nao pode sobreviver: o
         # relatorio por email anexaria erros que ja foram resolvidos.
         caminho_erros.unlink()
 
-    if not args.sem_readme:
+    if not args.sem_readme and not resultado.empty:
         atualizar_readme(args.readme, resultado, top=config.top_readme)
 
     avaliados = int((resultado["status"] == Status.OK.value).sum()) if not resultado.empty else 0

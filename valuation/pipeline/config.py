@@ -14,6 +14,32 @@ import yaml
 from pydantic import BaseModel, Field
 
 
+class PrevisaoReceita(BaseModel):
+    """Parametros do modelo de previsao de receita."""
+
+    modelo: str = Field(default="auto", pattern="^(auto|fundamentos|macro|AR|setor)$")
+    amortecimento: float = Field(default=0.85, gt=0.0, lt=1.0)
+    encolhimento_k: float = Field(default=3.0, ge=0.0, le=50.0)
+    clip_min: float = Field(default=-0.20, gt=-1.0, lt=0.0)
+    clip_max: float = Field(default=0.35, gt=0.0, lt=1.0)
+    minimo_anos: int = Field(default=3, ge=2, le=20)
+    anos_minimo_backtest: int = Field(default=2014, ge=2010, le=2030)
+    minimo_treino: int = Field(default=60, ge=20)
+    minimo_obs_setor: int = Field(default=20, ge=5)
+    margem_minima: float = Field(default=0.01, ge=0.0, lt=1.0)
+    ibc_br_esperado: float = Field(default=0.02, gt=-0.2, lt=0.2)
+    ipca_esperado: float = Field(default=0.04, gt=-0.1, lt=0.5)
+    cambio_esperado: float = Field(default=0.0, gt=-0.5, lt=0.5)
+
+    def macro_futuro(self) -> dict[str, float]:
+        """Premissas macro para o ano a frente, no formato do Modelo B."""
+        return {
+            "d_ibc_br": self.ibc_br_esperado,
+            "ipca": self.ipca_esperado,
+            "d_cambio": self.cambio_esperado,
+        }
+
+
 class Config(BaseModel):
     """Premissas de mercado e de modelagem."""
 
@@ -30,6 +56,8 @@ class Config(BaseModel):
     top_readme: int = Field(default=20, ge=1, le=200)
     beta_u_setorial: dict[str, float] = Field(default_factory=dict)
     beta_u_padrao: float = Field(default=0.85, gt=0.0, le=3.0)
+    publicar_modelo_receita: bool = True
+    previsao_receita: PrevisaoReceita = Field(default_factory=PrevisaoReceita)
 
     def beta_do_setor(self, setor: str) -> float:
         """Beta desalavancado do setor, com comparacao sem acentos."""
@@ -61,4 +89,4 @@ def carregar_config(caminho: Path | str | None = None) -> Config:
     return Config.model_validate(conteudo)
 
 
-__all__ = ["Config", "carregar_config"]
+__all__ = ["Config", "PrevisaoReceita", "carregar_config"]

@@ -102,3 +102,21 @@ def test_mencao_aos_marcadores_no_texto_nao_e_substituida(tmp_path: Path) -> Non
     assert "Use os marcadores" in texto
     assert "conteudo velho" not in texto
     assert texto.count(INICIO) == 2  # a mencao inline + o bloco real
+
+
+def test_readme_e_gravado_com_lf(tmp_path: Path) -> None:
+    """Regressao: no Windows, write_text trocava o README inteiro para CRLF."""
+    readme = tmp_path / "README.md"
+    readme.write_bytes(b"# Projeto\n\nTexto.\n")
+
+    atualizar_readme(readme, _df())
+
+    assert b"\r\n" not in readme.read_bytes()
+
+
+def test_salvar_csv_usa_lf(tmp_path: Path) -> None:
+    destino = tmp_path / "saida.csv"
+
+    salvar_csv(_df(), destino)
+
+    assert b"\r\n" not in destino.read_bytes()

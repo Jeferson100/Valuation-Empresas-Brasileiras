@@ -65,12 +65,25 @@ def avaliar_dcf(p: PremissasDCF) -> ResultadoDCF:
     g = p.g_perpetuidade
 
     for ano in range(1, p.anos + 1):
-        # Fade linear: o crescimento historico vale no ano 1 e converge para a
-        # perpetuidade no ultimo ano do horizonte. Sem isso, uma empresa que
-        # veio de um pico ciclico (-10% a.a.) seria projetada em queda por todo
-        # o horizonte explicito e depois crescaria 3% para sempre.
-        peso = (ano - 1) / (p.anos - 1) if p.anos > 1 else 1.0
-        crescimento = p.crescimento_receita + (g - p.crescimento_receita) * peso
+        if p.crescimento_por_ano is not None:
+            # Cenario de receita projetada: usa o vetor estimado pelo modelo.
+            if len(p.crescimento_por_ano) < p.anos:
+                raise ErroValidacao(
+                    Status.DADOS_INSUFICIENTES,
+                    f"crescimento_por_ano tem {len(p.crescimento_por_ano)} anos, esperado {p.anos}",
+                )
+            crescimento = float(p.crescimento_por_ano[ano - 1])
+        else:
+            # Fade linear: o crescimento historico vale no ano 1 e converge para
+            # a perpetuidade no ultimo ano do horizonte. Sem isso, uma empresa
+            # que veio de um pico ciclico (-10% a.a.) seria projetada em queda
+            # por todo o horizonte explicito e depois cresceria 3% para sempre.
+            peso = (ano - 1) / (p.anos - 1) if p.anos > 1 else 1.0
+            crescimento = p.crescimento_receita + (g - p.crescimento_receita) * peso
+
+        if crescimento <= -1.0:
+            raise ErroValidacao(Status.NAO_AVALIAVEL, "crescimento <= -100%")
+
         receita = receita_anterior * (1.0 + crescimento)
         ebit = receita * p.margem_ebit
         nopat = ebit * (1.0 - p.aliquota)

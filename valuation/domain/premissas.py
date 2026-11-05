@@ -44,6 +44,10 @@ class PremissasDCF(BaseModel):
     ativos_nao_operacionais: float = Field(default=0.0)
     num_acoes: float = Field(ge=0.0)
     meio_ano: bool = Field(default=False, description="convencao de meio de ano")
+    crescimento_por_ano: tuple[float, ...] | None = Field(
+        default=None,
+        description="crescimento ano a ano; quando presente, substitui o fade linear",
+    )
 
 
 class PremissasDDM(BaseModel):

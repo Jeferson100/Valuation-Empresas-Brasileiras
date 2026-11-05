@@ -46,3 +46,30 @@ beta_u_setorial:
   Tecnologia da Informacao: 0.95
   Comunicacoes: 0.75
   Petroleo. Gas e Biocombustiveis: 0.95
+
+# Publica um segundo DCF alimentado pela previsao de receita, sem alterar o
+# valuation oficial (que continua usando o crescimento historico).
+publicar_modelo_receita: true
+
+# Previsao de receita: dois modelos com variaveis independentes.
+# "auto" escolhe por setor no backtest; os demais forcam um modelo.
+previsao_receita:
+  modelo: auto
+  # Convergencia exponencial do crescimento ate a perpetuidade.
+  amortecimento: 0.85
+  # Encolhimento: peso da empresa = n / (n + k).
+  encolhimento_k: 3.0
+  # Corte de seguranca no crescimento anual real.
+  clip_min: -0.20
+  clip_max: 0.35
+  minimo_anos: 3
+  # Backtest rolling-origin: primeira origem e tamanho minimo do treino.
+  anos_minimo_backtest: 2014
+  minimo_treino: 60
+  minimo_obs_setor: 20
+  # Ganho minimo de MAPE para tirar um setor do AR.
+  margem_minima: 0.01
+  # Premissas macro do proximo ano (usadas so pelo Modelo B).
+  ibc_br_esperado: 0.02
+  ipca_esperado: 0.04
+  cambio_esperado: 0.0

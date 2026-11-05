@@ -105,3 +105,32 @@ def test_capex_acima_da_depreciacao_nao_penaliza_a_perpetuidade() -> None:
 def test_preco_por_acao_dividido_pelo_numero_de_acoes() -> None:
     resultado = avaliar_dcf(_premissas())
     assert resultado.preco_por_acao == pytest.approx(resultado.equity / 100.0)
+
+
+def test_crescimento_por_ano_substitui_o_fade() -> None:
+    """Cenario de receita projetada: cada ano usa o valor do vetor."""
+    tabela = avaliar_dcf(
+        _premissas(
+            crescimento_receita=0.20,
+            crescimento_por_ano=(0.10, 0.05, 0.02),
+            g_perpetuidade=0.02,
+            anos=3,
+        )
+    ).tabela
+    receitas = tabela["receita"].tolist()
+
+    assert receitas[0] == pytest.approx(1100.0)
+    assert receitas[1] == pytest.approx(1100.0 * 1.05)
+    assert receitas[2] == pytest.approx(1100.0 * 1.05 * 1.02)
+
+
+def test_crescimento_por_ano_incompleto_levanta() -> None:
+    with pytest.raises(ErroValidacao) as exc:
+        avaliar_dcf(_premissas(crescimento_por_ano=(0.05, 0.04), anos=3))
+    assert exc.value.status is Status.DADOS_INSUFICIENTES
+
+
+def test_crescimento_por_ano_menor_que_menos_cem_por_cento_levanta() -> None:
+    with pytest.raises(ErroValidacao) as exc:
+        avaliar_dcf(_premissas(crescimento_por_ano=(-1.5,), anos=1))
+    assert exc.value.status is Status.NAO_AVALIAVEL

@@ -116,7 +116,99 @@ Detalhes que evitam erros comuns:
 - `g ≥ WACC − 1 p.p.` gera `status=g_maior_que_wacc` em vez de valor terminal
   negativo ou infinito.
 
-## 5. Alíquota efetiva de imposto
+## 5. Cenário de receita projetada (segundo valuation)
+
+O valuation **oficial** continua sendo o da seção 4: crescimento histórico
+médio com fade linear. Em paralelo, o pipeline publica um **segundo DCF** em que
+apenas o vetor de crescimento muda — em vez do fade, cada ano usa a previsão do
+modelo de receita. As colunas ficam no fim do CSV (`preco_receita_p25/p50/p75`,
+`upside_receita_p50`, `status_receita`, ...) e **não** alteram preço-alvo,
+recomendação, status ou ranking oficiais. `publicar_modelo_receita: false` em
+`config.yaml` desliga o cenário; `--sem-previsao` o pula numa execução.
+
+### 5.1 Painel histórico
+
+A fonte é o conjunto de **dados abertos da CVM** (DFP — Demonstrações Financeiras
+Padronizadas), de 2010 a 2025, que cobre os exercícios de 2009 a 2025. Cada
+pacote anual traz o exercício corrente e o anterior; reafirmações são resolvidas
+pelo arquivo mais recente, pelo consolidado e pela maior `VERSAO`. O mapeamento
+CNPJ → ticker vem do formulário FCA. O painel resultante é versionado em
+`dados/receitas_historicas.csv` (~150 tickers, 2009–2025):
+
+```bash
+python -m valuation.data.cvm --atualizar --anos 2010-2025
+```
+
+O download completo tem ~220 MB e roda **uma vez por ano**; o pipeline mensal
+apenas lê o CSV. O exercício mais recente do yfinance é anexado ao painel antes
+do cálculo das defasagens, para o run mensal não depender da atualização da CVM.
+
+### 5.2 Modelos
+
+Dois modelos usam variáveis independentes, estimados por mínimos quadrados
+(`numpy.linalg.lstsq`), sem sklearn ou statsmodels:
+
+**Modelo A — fundamentos** (variação *entre* empresas):
+
+```
+g_it = a + b1·log(receita)_{i,t−1} + b2·margem_EBIT_{i,t−1}
+         + b3·ROA_{i,t−1} + b4·giro_{i,t−1}
+         + efeito_fixo_ano + efeito_fixo_setor + erro
+```
+
+**Modelo B — macro** (variação *no tempo*, com efeito fixo de empresa):
+
+```
+g_it = α_i + b1·Δlog(IBC-Br)_t + b2·IPCA_t + b3·Δlog(câmbio)_t + erro
+```
+
+Baselines: **AR** (repete o último crescimento) e **mediana do setor**.
+
+### 5.3 Backtest e seleção
+
+Backtest *rolling-origin*: treina até `t−1`, prevê `t`, para cada origem a partir
+de 2014. Nenhuma linha do ano-alvo entra no ajuste. Um modelo só substitui o AR
+num setor se reduzir o MAPE em pelo menos 1 ponto percentual (`margem_minima`).
+
+Resultado com o painel 2009–2025:
+
+| Modelo | MAPE | Erro médio de `g` | Acerto de sinal |
+|---|---:|---:|---:|
+| mediana do setor | 16,6% | −1,0 p.p. | 61% |
+| fundamentos (A) | 17,1% | −0,6 p.p. | 57% |
+| macro (B) | 18,1% | −1,3 p.p. | 59% |
+| AR | 19,3% | +0,4 p.p. | 58% |
+
+O **Modelo A bate o AR no agregado** e é adotado em Materiais Básicos (14,1%
+contra 17,4%) e Utilidade Pública (15,9% contra 22,1%), mas perde para a mediana
+setorial em vários setores e não é usado neles. O Modelo B vence o AR em Bens
+Industriais (18,9% contra 22,6%) e Petróleo, Gás e Biocombustíveis (20,7% contra
+23,8%), e é adotado nesses dois setores. Nos demais a seleção mantém o AR ou a
+mediana setorial. Esse resultado é modesto e fica registrado: na maior parte do
+universo, a previsão publicada é um crescimento setorial, não uma previsão
+específica da empresa.
+
+### 5.4 Do modelo ao DCF
+
+Depois da escolha por setor:
+
+- **Encolhimento** empirical Bayes: `w = n/(n+k)`, com `k = 3`. A tendência da
+  empresa é puxada para a mediana do setor quando a série é curta.
+- **Amortecimento** exponencial até a perpetuidade:
+  `g_t = g_perp + (g − g_perp)·φ^(t−1)`, com `φ = 0,85`.
+- A tendência é estimada em termos **reais** (receita deflacionada pelo IPCA) e
+  convertida para nominal:
+  `g_nominal = (1 + g_real)·(1 + IPCA) − 1`. A perpetuidade real é derivada da
+  nominal de 3%, para o último ano explícito encontrar o valor terminal sem
+  salto.
+- O crescimento anual é truncado em `[−20%; +35%]`.
+
+Limitações do cenário: o backtest do Modelo B usa a macro **realizada** do
+ano-alvo (é otimista por construção); o painel depende do mapa CNPJ → ticker do
+FCA e cobre 151 dos 159 tickers; holdings sem receita na DRE (Bradespar, por
+exemplo) caem na mediana do setor.
+
+## 6. Alíquota efetiva de imposto
 
 ```
 t = mediana( Imposto de Renda / Lucro antes do imposto ), apenas anos com lucro > 0
@@ -128,7 +220,7 @@ O resultado é truncado em `[0; 34%]` (empresas não financeiras) ou `[0; 45%]`
 Isso substitui o cálculo antigo (`Imposto / EBIT`, sem corte), que produzia
 alíquotas de 3.796% e 593%.
 
-## 6. Dividendos descontados em dois estágios (DDM)
+## 7. Dividendos descontados em dois estágios (DDM)
 
 Usado para o setor financeiro e como modelo secundário informativo para quem
 distribui dividendos.
@@ -150,7 +242,7 @@ crescente, sem herdar um ano atípico isolado.
 - `Ke ≤ g + 1 p.p.` gera `status=g_maior_que_wacc`.
 - Empresa sem dividendo identificado gera `status=sem_dividendos`.
 
-## 7. Faixa de preço e sensibilidade
+## 8. Faixa de preço e sensibilidade
 
 Um DCF é uma faixa, não um número. Para cada empresa é montada uma grade
 `WACC × g` (ou `Ke × g` no DDM):
@@ -168,7 +260,7 @@ De todos os cenários válidos (positivos e finitos) saem os percentis publicado
 
 `upside_p50 = preco_alvo_p50 / preco_atual − 1`.
 
-## 8. Portões de sanidade (status)
+## 9. Portões de sanidade (status)
 
 Nenhum número entra no ranking sem passar por estes filtros, aplicados nesta
 ordem:
@@ -188,7 +280,7 @@ ordem:
 Tickers que falham na **coleta** (rede, ticker inexistente) vão para
 `dados/erros.csv` com a exceção. Um ticker nunca desaparece em silêncio.
 
-## 9. Recomendação e margem de segurança
+## 10. Recomendação e margem de segurança
 
 A recomendação usa o piso da faixa (P25), não o valor central:
 
@@ -202,7 +294,7 @@ A margem de 25% (`margem_seguranca`) é a distância exigida entre o preço de
 mercado e o cenário pessimista. Ela é publicada junto com o resultado, para que
 o leitor possa recalcular com outra premissa.
 
-## 10. Dados e reprodutibilidade
+## 11. Dados e reprodutibilidade
 
 - **Uma requisição por ticker**, com cache em `dados/cache/` (parquet, TTL de 1
   dia) e retry com backoff exponencial. Respostas vazias (throttling do Yahoo)
@@ -213,6 +305,8 @@ o leitor possa recalcular com outra premissa.
   geométrica média, truncada em `[−10%; +20%]`.
 - Se o IPCA não estiver disponível, o crescimento é nominal e um aviso é
   registrado no log.
+- O valuation oficial usa as demonstrações do Yahoo (até 4 anos). O cenário de
+  receita usa o painel da CVM (seção 5), com ~17 exercícios por empresa.
 - **Moeda.** O Yahoo devolve as demonstrações na moeda de reporte da companhia
   (USD no caso de Petrobras e Vale) e o preço em BRL. O pipeline detecta a
   diferença pela escala entre `info.totalDebt` e o `Total Debt` do balanço e
@@ -221,7 +315,7 @@ o leitor possa recalcular com outra premissa.
   para a coluna `fator_cambio`.
 - `premissas_hash` identifica a combinação exata de premissas usada na linha.
 
-## 11. Limitações conhecidas
+## 12. Limitações conhecidas
 
 Leia antes de usar qualquer número como tese de investimento.
 
@@ -244,7 +338,7 @@ Leia antes de usar qualquer número como tese de investimento.
 7. **Projeções nominais em R$.** Inflação, câmbio e juros de longo prazo são
    tratados como constantes dentro do horizonte.
 
-## 12. Referências
+## 13. Referências
 
 - Damodaran, A. *Investment Valuation* — betas setoriais, prêmio de risco país.
 - Koller, T.; Goedhart, M.; Wessels, D. *Valuation* (McKinsey) — ponte de valor

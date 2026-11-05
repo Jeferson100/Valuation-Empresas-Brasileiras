@@ -177,3 +177,6 @@ cython_debug/
 dados/cache/
 dados/erros.csv
 dados/relatorio_email.html
+# Detalhe do backtest (~1 MB, regenerado a cada execucao). O resumo e as
+# projecoes ficam versionados; este arquivo serve para inspecao local.
+dados/backtest_receita.csv
