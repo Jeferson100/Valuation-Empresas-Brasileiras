@@ -178,6 +178,10 @@ def montar_indicadores(
     if margem_ebit <= 0:
         raise ErroValidacao(Status.NAO_AVALIAVEL, f"margem EBIT mediana <= 0 ({margem_ebit:.4f})")
 
+    receita_ultima = float(receita.iloc[-1])
+    if not math.isfinite(receita_ultima) or receita_ultima <= 0:
+        raise ErroValidacao(Status.NAO_AVALIAVEL, f"receita base <= 0 ({receita_ultima:.4f})")
+
     depreciacao = serie(
         financials, "Depreciation And Amortization", "Reconciled Depreciation"
     ).abs()

@@ -200,39 +200,40 @@ para mais detalhes.
 <!-- VALUATION:START -->
 ### Top 20 por upside potencial (status `ok`)
 
-| acao   | setor               |   preco_atual |   preco_alvo_p25 |   preco_alvo_p50 |   preco_alvo_p75 |   upside_p50 |   margem_seguranca | recomendacao   |   wacc |   g_perpetuidade |
-|:-------|:--------------------|--------------:|-----------------:|-----------------:|-----------------:|-------------:|-------------------:|:---------------|-------:|-----------------:|
-| TRIS3  | Consumo Cíclico     |          4.26 |             5.86 |             6.27 |             6.75 |        47.12 |              25.00 | compra         |   0.15 |             0.03 |
-| CMIG4  | Utilidade Pública   |         10.27 |            13.34 |            14.93 |            17.00 |        45.33 |              25.00 | neutro         |   0.13 |             0.03 |
-| CYRE3  | Consumo Cíclico     |         18.24 |            23.60 |            26.32 |            29.68 |        44.30 |              25.00 | neutro         |   0.16 |             0.03 |
-| BRAP3  | Materiais Básicos   |         17.52 |            22.58 |            22.93 |            23.36 |        30.87 |              25.00 | neutro         |   0.17 |             0.03 |
-| CAMB3  | Consumo Cíclico     |          7.27 |             8.77 |             9.39 |            10.10 |        29.15 |              25.00 | neutro         |   0.17 |             0.03 |
-| BGIP4  | Financeiro          |         32.10 |            37.90 |            40.71 |            43.41 |        26.81 |              25.00 | neutro         |   0.15 |             0.03 |
-| BMKS3  | Consumo Cíclico     |        350.00 |           436.70 |           442.15 |           448.42 |        26.33 |              25.00 | neutro         |   0.17 |             0.03 |
-| BBAS3  | Financeiro          |         16.44 |            18.59 |            20.31 |            22.25 |        23.55 |              25.00 | neutro         |   0.17 |             0.03 |
-| CEBR6  | Utilidade Pública   |         26.16 |            30.19 |            32.09 |            34.54 |        22.66 |              25.00 | neutro         |   0.14 |             0.03 |
-| BRAP4  | Materiais Básicos   |         18.88 |            22.58 |            22.93 |            23.36 |        21.45 |              25.00 | neutro         |   0.17 |             0.03 |
-| BBDC3  | Financeiro          |         12.88 |            14.02 |            15.30 |            16.92 |        18.80 |              25.00 | neutro         |   0.19 |             0.03 |
-| BBDC4  | Financeiro          |         14.03 |            15.03 |            16.39 |            18.11 |        16.85 |              25.00 | neutro         |   0.19 |             0.03 |
-| MDIA3  | Consumo não Cíclico |         16.58 |            17.11 |            18.25 |            19.60 |        10.10 |              25.00 | neutro         |   0.16 |             0.03 |
-| FESA4  | Materiais Básicos   |          5.06 |             5.13 |             5.51 |             5.94 |         8.84 |              25.00 | neutro         |   0.17 |             0.03 |
-| LOGG3  | Financeiro          |         20.88 |            20.32 |            22.15 |            24.44 |         6.06 |              25.00 | caro           |   0.12 |             0.03 |
-| AZZA3  | Consumo Cíclico     |         14.38 |            13.27 |            15.15 |            17.53 |         5.37 |              25.00 | caro           |   0.18 |             0.03 |
-| LREN3  | Consumo Cíclico     |          9.70 |             8.25 |             8.87 |             9.69 |        -8.53 |              25.00 | caro           |   0.17 |             0.03 |
-| JHSF3  | Consumo Cíclico     |          9.65 |             7.55 |             8.58 |             9.87 |       -11.08 |              25.00 | caro           |   0.16 |             0.03 |
-| CMIG3  | Utilidade Pública   |         16.63 |            13.07 |            14.60 |            16.58 |       -12.22 |              25.00 | caro           |   0.13 |             0.03 |
-| BAZA3  | Financeiro          |         64.50 |            51.11 |            55.59 |            61.25 |       -13.81 |              25.00 | caro           |   0.16 |             0.03 |
+| acao   |   setor |   preco_atual |   preco_alvo_p25 |   preco_alvo_p50 |   preco_alvo_p75 |   upside_p50 |   margem_seguranca | recomendacao   |   wacc |   g_perpetuidade |
+|:-------|--------:|--------------:|-----------------:|-----------------:|-----------------:|-------------:|-------------------:|:---------------|-------:|-----------------:|
+| LPSB3  |     nan |          1.01 |             1.80 |             1.91 |             2.03 |        88.74 |              25.00 | compra         |   0.17 |             0.03 |
+| ITUB3  |     nan |         44.58 |            82.82 |            83.73 |            84.79 |        87.81 |              25.00 | compra         |   0.20 |             0.03 |
+| BPAC3  |     nan |         23.68 |            43.56 |            44.11 |            44.77 |        86.29 |              25.00 | compra         |   0.18 |             0.03 |
+| VLID3  |     nan |         13.84 |            21.67 |            23.11 |            24.89 |        67.01 |              25.00 | compra         |   0.16 |             0.03 |
+| DEXP4  |     nan |          7.25 |            11.04 |            11.76 |            12.66 |        62.25 |              25.00 | compra         |   0.16 |             0.03 |
+| DEXP3  |     nan |          7.26 |            11.04 |            11.76 |            12.66 |        62.02 |              25.00 | compra         |   0.16 |             0.03 |
+| RNEW4  |     nan |          0.84 |             1.11 |             1.29 |             1.51 |        54.05 |              25.00 | neutro         |   0.19 |             0.03 |
+| RNEW3  |     nan |          0.85 |             1.11 |             1.30 |             1.51 |        52.40 |              25.00 | neutro         |   0.19 |             0.03 |
+| MTSA4  |     nan |         41.04 |            59.76 |            62.30 |            65.31 |        51.81 |              25.00 | compra         |   0.16 |             0.03 |
+| SYNE3  |     nan |          2.82 |             3.90 |             4.20 |             4.56 |        48.90 |              25.00 | compra         |   0.18 |             0.03 |
+| TRIS3  |     nan |          4.26 |             5.86 |             6.27 |             6.75 |        47.12 |              25.00 | compra         |   0.15 |             0.03 |
+| PSSA3  |     nan |         44.05 |            61.71 |            63.67 |            66.03 |        44.54 |              25.00 | compra         |   0.17 |             0.03 |
+| CYRE3  |     nan |         18.24 |            23.60 |            26.32 |            29.68 |        44.30 |              25.00 | neutro         |   0.16 |             0.03 |
+| POMO3  |     nan |          3.36 |             4.31 |             4.73 |             5.26 |        40.83 |              25.00 | neutro         |   0.16 |             0.03 |
+| BOBR4  |     nan |          1.55 |             2.01 |             2.17 |             2.35 |        40.11 |              25.00 | neutro         |   0.20 |             0.03 |
+| SOJA3  |     nan |          5.95 |             7.53 |             8.30 |             9.24 |        39.50 |              25.00 | neutro         |   0.16 |             0.03 |
+| TELB3  |     nan |         12.35 |            16.66 |            17.15 |            17.70 |        38.90 |              25.00 | compra         |   0.17 |             0.03 |
+| ROMI3  |     nan |          5.27 |             6.62 |             7.27 |             8.03 |        37.87 |              25.00 | neutro         |   0.15 |             0.03 |
+| MYPK3  |     nan |          9.13 |             9.18 |            12.38 |            16.30 |        35.60 |              25.00 | neutro         |   0.12 |             0.03 |
+| CGRA4  |     nan |         22.33 |            28.34 |            29.96 |            31.96 |        34.15 |              25.00 | neutro         |   0.16 |             0.03 |
 
-**Cobertura:** 144 tickers no universo, 101 com `status=ok`.
+**Cobertura:** 376 tickers no universo, 199 com `status=ok`.
 Preços-alvo em R$; `upside` e `margem de segurança` em %.
 
 | status | tickers |
 |---|---:|
-| `ok` | 101 |
-| `nao_avaliavel` | 17 |
-| `resultado_absurdo` | 14 |
-| `wacc_invalido` | 10 |
-| `dados_insuficientes` | 2 |
+| `ok` | 199 |
+| `nao_avaliavel` | 78 |
+| `resultado_absurdo` | 61 |
+| `wacc_invalido` | 32 |
+| `dados_insuficientes` | 5 |
+| `preco_desatualizado` | 1 |
 
 Resultado completo: [dados/valores_valuations_acoes.csv](dados/valores_valuations_acoes.csv) · Metodologia: [METODOLOGIA.md](METODOLOGIA.md)
 <!-- VALUATION:END -->
