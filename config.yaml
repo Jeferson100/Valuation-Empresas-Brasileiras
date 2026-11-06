@@ -73,3 +73,29 @@ previsao_receita:
   ibc_br_esperado: 0.02
   ipca_esperado: 0.04
   cambio_esperado: 0.0
+  # Expectativas do Boletim Focus (SGS) para o ano a frente.
+  # Variaveis independentes ex-ante do Modelo B.
+  usar_focus: true
+  ipca_exp_esperado: 0.04
+  pib_exp_esperado: 0.02
+  selic_exp_esperado: 0.11
+  cambio_exp_esperado: 0.0
+  # Modelos de machine learning que concorrem com o OLS no backtest. Usam
+  # features extras (defasagens, tamanho do ativo, alavancagem, idade da serie,
+  # media e volatilidade do crescimento) alem das variaveis dos modelos A/B.
+  # Requer `pip install -e ".[ml]"`; `lstm`/`gru` exigem `.[deep]` (torch).
+  # Modelo com biblioteca ausente e ignorado com aviso, sem quebrar o run.
+  modelos_ml:
+    - xgboost
+    - lightgbm
+    - catboost
+    - mlp
+    - lstm
+    - gru
+  # Hiperparametros conservadores: o painel tem ~2 mil linhas e ~150 empresas.
+  ml_semente: 7
+  ml_n_estimadores: 300
+  ml_profundidade: 3
+  ml_taxa: 0.05
+  ml_janela: 3
+  ml_epocas: 80

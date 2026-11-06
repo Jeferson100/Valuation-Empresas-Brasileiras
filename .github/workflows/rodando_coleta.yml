@@ -32,7 +32,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .
+          # `ml` traz XGBoost/LightGBM/CatBoost/MLP. As redes recorrentes
+          # (LSTM/GRU) ficam no extra `deep`: o torch e pesado e, sem ele, os
+          # modelos sao apenas ignorados com aviso.
+          python -m pip install -e ".[ml]"
 
       - name: Rodando Valuation
         run: python -m valuation.pipeline.run -v

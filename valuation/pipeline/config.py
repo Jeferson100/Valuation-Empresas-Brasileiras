@@ -11,13 +11,15 @@ import json
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from ..domain.modelos_ml import MODELOS_ML
 
 
 class PrevisaoReceita(BaseModel):
     """Parametros do modelo de previsao de receita."""
 
-    modelo: str = Field(default="auto", pattern="^(auto|fundamentos|macro|AR|setor)$")
+    modelo: str = Field(default="auto")
     amortecimento: float = Field(default=0.85, gt=0.0, lt=1.0)
     encolhimento_k: float = Field(default=3.0, ge=0.0, le=50.0)
     clip_min: float = Field(default=-0.20, gt=-1.0, lt=0.0)
@@ -30,14 +32,60 @@ class PrevisaoReceita(BaseModel):
     ibc_br_esperado: float = Field(default=0.02, gt=-0.2, lt=0.2)
     ipca_esperado: float = Field(default=0.04, gt=-0.1, lt=0.5)
     cambio_esperado: float = Field(default=0.0, gt=-0.5, lt=0.5)
+    # Expectativas do Boletim Focus para o ano a frente (variaveis independentes
+    # ex-ante do Modelo B). Desligue com usar_focus: false se o BCB estiver fora.
+    usar_focus: bool = Field(default=True)
+    ipca_exp_esperado: float = Field(default=0.04, gt=-0.1, lt=0.5)
+    pib_exp_esperado: float = Field(default=0.02, gt=-0.2, lt=0.2)
+    selic_exp_esperado: float = Field(default=0.11, gt=0.0, lt=0.3)
+    cambio_exp_esperado: float = Field(default=0.0, gt=-0.5, lt=0.5)
+    # Modelos de machine learning que concorrem no backtest. Cada um usa as
+    # features extras de `features.COLUNAS_EXTRA`; biblioteca ausente e apenas
+    # ignorada (aviso no log), sem interromper o pipeline.
+    modelos_ml: list[str] = Field(default_factory=lambda: list(MODELOS_ML))
+    ml_semente: int = Field(default=7, ge=0)
+    ml_n_estimadores: int = Field(default=300, ge=50, le=2000)
+    ml_profundidade: int = Field(default=3, ge=1, le=8)
+    ml_taxa: float = Field(default=0.05, gt=0.0, lt=1.0)
+    ml_janela: int = Field(default=3, ge=1, le=10)
+    ml_epocas: int = Field(default=80, ge=10, le=2000)
+
+    @field_validator("modelo")
+    @classmethod
+    def _validar_modelo(cls, valor: str) -> str:
+        permitidos = ("auto", "fundamentos", "macro", "AR", "setor", *MODELOS_ML)
+        if valor not in permitidos:
+            raise ValueError(f"modelo invalido: {valor}; use um de {permitidos}")
+        return valor
+
+    @field_validator("modelos_ml")
+    @classmethod
+    def _validar_modelos_ml(cls, valores: list[str]) -> list[str]:
+        desconhecidos = sorted(set(valores) - set(MODELOS_ML))
+        if desconhecidos:
+            raise ValueError(
+                f"modelos_ml invalidos: {desconhecidos}; use subconjunto de {MODELOS_ML}"
+            )
+        # Preserva a ordem escolhida e remove duplicatas.
+        return list(dict.fromkeys(valores))
 
     def macro_futuro(self) -> dict[str, float]:
         """Premissas macro para o ano a frente, no formato do Modelo B."""
-        return {
+        payload = {
             "d_ibc_br": self.ibc_br_esperado,
             "ipca": self.ipca_esperado,
             "d_cambio": self.cambio_esperado,
         }
+        if self.usar_focus:
+            payload.update(
+                {
+                    "ipca_exp": self.ipca_exp_esperado,
+                    "pib_exp": self.pib_exp_esperado,
+                    "selic_exp": self.selic_exp_esperado,
+                    "d_cambio_exp": self.cambio_exp_esperado,
+                }
+            )
+        return payload
 
 
 class Config(BaseModel):

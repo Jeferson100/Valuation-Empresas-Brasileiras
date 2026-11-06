@@ -8,7 +8,12 @@ from pathlib import Path
 
 import pytest
 
-from valuation.data.macro import _baixar_intervalo, baixar_sgs, carregar_macro
+from valuation.data.macro import (
+    _baixar_intervalo,
+    baixar_focus,
+    baixar_sgs,
+    carregar_macro,
+)
 from valuation.domain.erros import ErroDados
 
 
@@ -99,3 +104,59 @@ def test_baixar_intervalo_quebra_em_janelas(monkeypatch) -> None:
     assert len(chamadas) == 4
     assert "dataInicial=01/01/2008" in chamadas[0]
     assert "dataFinal=31/12/2025" in chamadas[-1]
+
+
+def _cache_focus(cache: Path, codigo: int, valores: list[tuple[str, str]]) -> None:
+    pasta = cache / "macro"
+    pasta.mkdir(parents=True, exist_ok=True)
+    texto = json.dumps([{"data": data, "valor": valor} for data, valor in valores])
+    (pasta / f"focus{codigo}.json").write_text(texto, encoding="utf-8")
+
+
+def test_baixar_focus_parseia_virgula_decimal(tmp_path: Path) -> None:
+    _cache_focus(tmp_path, 117706, [("01/01/2024", "0,40"), ("01/02/2024", "0,45")])
+    serie = baixar_focus(117706, tmp_path, offline=True)
+    assert list(serie) == pytest.approx([0.40, 0.45])
+
+
+def test_carregar_macro_com_focus_inclui_expectativas(tmp_path: Path) -> None:
+    """Sem Focus as colunas *_exp nao devem aparecer."""
+    _cache(tmp_path, 433, [("01/01/2024", "0,50")])
+    _cache_focus(
+        tmp_path,
+        117706,
+        [("01/01/2024", "0,40"), ("01/07/2024", "0,45")],
+    )
+    _cache_focus(
+        tmp_path,
+        117709,
+        [("01/01/2024", "2,0"), ("01/07/2024", "2,1")],
+    )
+
+    macro = carregar_macro(tmp_path, offline=True, usar_focus=True)
+
+    assert not macro.empty
+    assert "ipca_exp" in macro.columns
+    assert "pib_exp" in macro.columns
+    assert macro.loc[2024, "ipca_exp"] == pytest.approx(0.425)
+
+
+def test_carregar_macro_sem_focus_nao_inclui_expectativas(tmp_path: Path) -> None:
+    """Quando usar_focus=False, as colunas *_exp ficam de fora."""
+    _cache(tmp_path, 433, [("01/01/2024", "0,50")])
+    _cache_focus(
+        tmp_path,
+        117706,
+        [("01/01/2024", "0,40")],
+    )
+
+    macro = carregar_macro(tmp_path, offline=True, usar_focus=False)
+
+    assert not macro.empty
+    assert "ipca_exp" not in macro.columns
+    assert "pib_exp" not in macro.columns
+
+
+def test_baixar_focus_offline_sem_cache_levanta(tmp_path: Path) -> None:
+    with pytest.raises(ErroDados):
+        baixar_focus(117706, tmp_path, offline=True)

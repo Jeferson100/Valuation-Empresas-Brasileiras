@@ -335,7 +335,11 @@ def _prever_mercado(
     try:
         receitas = carregar_receitas(args.receitas)
         receitas = atualizar_com_snapshots(receitas, snapshots)
-        macro = carregar_macro(args.cache, offline=args.offline)
+        macro = carregar_macro(
+            args.cache,
+            offline=args.offline,
+            usar_focus=config.previsao_receita.usar_focus,
+        )
         painel = montar_painel(receitas, macro, universo)
 
         projecoes, historico, resumo, escolha = prever_receitas(

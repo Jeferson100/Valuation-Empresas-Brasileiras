@@ -31,3 +31,7 @@ sidrapy
 types-requests
 tabulate
 
+
+# Modelos de machine learning do cenario de receita (opcionais):
+# pip install -e ".[ml]"   # XGBoost, LightGBM, CatBoost, MLP
+# pip install -e ".[deep]" # LSTM/GRU (torch)

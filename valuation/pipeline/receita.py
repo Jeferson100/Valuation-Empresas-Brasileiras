@@ -16,6 +16,8 @@ import pandas as pd
 from ..data.macro import carregar_macro
 from ..data.snapshot import SnapshotFinanceiro
 from ..domain.erros import ErroDados
+from ..domain.features import enriquecer
+from ..domain.modelos_ml import OpcoesML
 from ..domain.previsao import (
     COLUNAS_MACRO,
     backtest,
@@ -192,6 +194,19 @@ def prever_receitas(
     """Roda backtest, escolhe modelo por setor e projeta o proximo ano."""
     cfg = config.previsao_receita
     clip = (cfg.clip_min, cfg.clip_max)
+    opcoes_ml = OpcoesML(
+        semente=cfg.ml_semente,
+        n_estimadores=cfg.ml_n_estimadores,
+        profundidade=cfg.ml_profundidade,
+        taxa=cfg.ml_taxa,
+        janela=cfg.ml_janela,
+        epocas=cfg.ml_epocas,
+    )
+
+    # Enriquecer o painel inteiro, antes de filtrar: assim as defasagens e as
+    # medias moveis do backtest e da projecao saem da mesma serie.
+    if cfg.modelos_ml:
+        painel = enriquecer(painel)
 
     base = painel.dropna(subset=["g", "receita_real_lag"]).copy()
     base = base[base["g"].abs() < 1.5]
@@ -201,6 +216,8 @@ def prever_receitas(
         anos_minimo=cfg.anos_minimo_backtest,
         minimo_treino=cfg.minimo_treino,
         clip=clip,
+        modelos_ml=cfg.modelos_ml,
+        opcoes_ml=opcoes_ml,
     )
     resumo = resumir(historico)
     escolha = selecionar_por_setor(
@@ -222,6 +239,8 @@ def prever_receitas(
         clip=clip,
         macro_futuro=macro_futuro,
         minimo_anos=cfg.minimo_anos,
+        modelos_ml=cfg.modelos_ml,
+        opcoes_ml=opcoes_ml,
     )
     return projecoes, historico, resumo, escolha
 

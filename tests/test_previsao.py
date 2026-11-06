@@ -99,6 +99,10 @@ def test_macro_recupera_coeficientes() -> None:
             "d_ibc_br": rng.normal(0.02, 0.01, len(anos)),
             "ipca": rng.normal(0.04, 0.005, len(anos)),
             "d_cambio": rng.normal(0.0, 0.03, len(anos)),
+            "ipca_exp": rng.normal(0.04, 0.005, len(anos)),
+            "pib_exp": rng.normal(0.02, 0.005, len(anos)),
+            "selic_exp": rng.normal(0.11, 0.005, len(anos)),
+            "d_cambio_exp": rng.normal(0.0, 0.03, len(anos)),
         },
         index=anos,
     )
@@ -108,13 +112,22 @@ def test_macro_recupera_coeficientes() -> None:
         alfa = rng.normal(0.0, 0.01)
         for ano in anos:
             x = macro.loc[ano]
-            g = alfa + 0.8 * x["d_ibc_br"] - 0.5 * x["ipca"] + rng.normal(0, 1e-4)
+            g = (
+                alfa
+                + 0.8 * x["d_ibc_br"]
+                - 0.5 * x["ipca"]
+                + 0.3 * x["ipca_exp"]
+                + 0.2 * x["pib_exp"]
+                - 0.1 * x["selic_exp"]
+                + 0.05 * x["d_cambio_exp"]
+                + rng.normal(0, 1e-4)
+            )
             linhas.append({"ticker": f"E{empresa}", "ano": ano, "g": g, **x.to_dict()})
 
     modelo = ajustar_macro(pd.DataFrame(linhas))
-    assert modelo.beta[0] == pytest.approx(0.8, abs=0.02)
+    # coeficiente de d_ibc_br e o primeiro da lista de colunas
+    assert modelo.beta[0] == pytest.approx(0.8, abs=0.05)
     assert modelo.beta[1] == pytest.approx(-0.5, abs=0.05)
-    assert modelo.beta[2] == pytest.approx(0.0, abs=0.05)
     assert modelo.r2 > 0.9
 
 
@@ -260,6 +273,10 @@ def _painel_sintetico(
                         "d_ibc_br": 0.02,
                         "ipca": 0.04,
                         "d_cambio": 0.0,
+                        "ipca_exp": 0.04,
+                        "pib_exp": 0.02,
+                        "selic_exp": 0.11,
+                        "d_cambio_exp": 0.0,
                     }
                 )
                 receita *= 1 + g

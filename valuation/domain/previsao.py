@@ -6,9 +6,18 @@ Modelo A (fundamentos) explora a variacao ENTRE empresas:
               + efeito_fixo_ano + efeito_fixo_setor + erro
 
 Modelo B (macro) explora a variacao NO TEMPO:
-    g_it = alpha_i + b1*Dlog(IBC-Br)_t + b2*IPCA_t + b3*Dlog(cambio)_t + erro
+    g_it = alpha_i + b1*Dlog(IBC-Br)_t + b2*IPCA_t + b3*Dlog(cambio)_t
+           + b4*ipca_exp_t + b5*pib_exp_t + b6*selic_exp_t + b7*d_cambio_exp_t + erro
+
+As variaveis com sufixo _exp sao expectativas do Boletim Focus (SGS), usadas como
+variaveis independentes ex-ante para o ano alvo.
 
 Baselines: AR (repete o ultimo crescimento) e mediana setorial.
+
+Modelos de machine learning (XGBoost, LightGBM, CatBoost, MLP e redes
+recorrentes) entram como candidatos opcionais no mesmo backtest, com features
+extras; veja :mod:`valuation.domain.modelos_ml`. O OLS continua sendo a
+referencia e nao depende de nenhuma biblioteca alem de numpy.
 
 O backtest rolling-origin decide, por setor, qual modelo entra no cenario de
 receita projetada. Sem sklearn e sem statsmodels: OLS e ``numpy.linalg.lstsq``
@@ -17,16 +26,22 @@ e o efeito fixo de empresa e a transformacao within.
 
 from __future__ import annotations
 
+import logging
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import cast
 
 import numpy as np
 import pandas as pd
 
-COLUNAS_FUNDAMENTOS = ("log_receita_lag", "margem_lag", "roa_lag", "giro_lag")
-COLUNAS_MACRO = ("d_ibc_br", "ipca", "d_cambio")
+from .features import COLUNAS_FUNDAMENTOS, COLUNAS_MACRO, enriquecer
+from .modelos_ml import MODELOS_ML, OpcoesML, ajustar_e_prever, disponivel
+
+log = logging.getLogger(__name__)
+
 MODELOS = ("fundamentos", "macro", "AR", "setor")
+MODELOS_TODOS = (*MODELOS, *MODELOS_ML)
 CLIP_PADRAO = (-0.20, 0.35)
 
 
@@ -138,7 +153,19 @@ def ajustar_macro(
     treino: pd.DataFrame,
     colunas: tuple[str, ...] = COLUNAS_MACRO,
 ) -> ModeloMacro:
-    """Estima o Modelo B com efeito fixo de empresa (transformacao within)."""
+    """Estima o Modelo B com efeito fixo de empresa (transformacao within).
+
+    Colunas macro sem cobertura minima no treino sao descartadas: quando a API
+    do BCB falha, as expectativas do Focus chegam todas vazias e derrubariam o
+    modelo inteiro. Nesse caso o Modelo B roda com as tres variaveis realizadas.
+    """
+    colunas = tuple(
+        coluna
+        for coluna in colunas
+        if coluna in treino.columns and treino[coluna].notna().mean() >= 0.5
+    )
+    if not colunas:
+        raise ValueError("sem colunas macro com cobertura suficiente")
     dados = treino.dropna(subset=[*colunas, "g", "ticker"])
     if len(dados) < 40 or dados["ticker"].nunique() < 10:
         raise ValueError("amostra insuficiente para o modelo macro")
@@ -222,12 +249,26 @@ def backtest(
     anos_minimo: int = 2014,
     minimo_treino: int = 60,
     clip: tuple[float, float] = CLIP_PADRAO,
+    modelos_ml: Sequence[str] = (),
+    opcoes_ml: OpcoesML | None = None,
 ) -> pd.DataFrame:
     """Backtest rolling-origin: treina ate t-1, preve t, para cada ano.
 
     Nenhuma linha do ano alvo entra no ajuste. O Modelo B usa a macro realizada
     do ano alvo, o que e otimista por construcao e sera declarado no doc.
+
+    ``modelos_ml`` acrescenta candidatos (veja :mod:`valuation.domain.modelos_ml`).
+    Um modelo cuja biblioteca falte ou cujo ajuste quebre vira NaN e nao entra
+    no resumo, sem interromper o backtest.
     """
+    if modelos_ml:
+        painel = enriquecer(painel)
+        disponiveis = [nome for nome in modelos_ml if disponivel(nome)]
+        ausentes = sorted(set(modelos_ml) - set(disponiveis))
+        if ausentes:
+            log.warning("modelos de ML sem biblioteca instalada: %s", ausentes)
+        modelos_ml = disponiveis
+
     colunas = [
         "ano",
         "ticker",
@@ -265,6 +306,13 @@ def backtest(
 
         previsoes["AR"] = teste["g_ant"].to_numpy(float)
         previsoes["setor"] = _prever_setor(treino, teste)
+
+        for nome in modelos_ml:
+            try:
+                previsoes[nome] = ajustar_e_prever(nome, treino, teste, opcoes_ml)
+            except Exception as exc:  # biblioteca ausente ou ajuste instavel
+                log.warning("modelo %s falhou em %d: %s", nome, ano, exc)
+                previsoes[nome] = np.full(len(teste), np.nan)
 
         for modelo, bruto in previsoes.items():
             g_previsto = np.clip(np.asarray(bruto, dtype=float), *clip)
@@ -393,6 +441,8 @@ def estimar_proximo_ano(
     clip: tuple[float, float] = CLIP_PADRAO,
     macro_futuro: dict[str, float] | None = None,
     minimo_anos: int = 3,
+    modelos_ml: Sequence[str] = (),
+    opcoes_ml: OpcoesML | None = None,
 ) -> pd.DataFrame:
     """Projeta o crescimento do proximo ano para cada ticker.
 
@@ -403,7 +453,18 @@ def estimar_proximo_ano(
 
     A perpetuidade real e derivada da nominal do ``config.yaml``, para que o
     ultimo ano explicito encontre o valor terminal sem salto.
+
+    Modelos de ML (``modelos_ml``) usam as mesmas premissas macro do Modelo B
+    para o ano a frente e as features extras do painel enriquecido.
     """
+    if modelos_ml:
+        painel = enriquecer(painel)
+        disponiveis = [nome for nome in modelos_ml if disponivel(nome)]
+        ausentes = sorted(set(modelos_ml) - set(disponiveis))
+        if ausentes:
+            log.warning("modelos de ML sem biblioteca instalada: %s", ausentes)
+        modelos_ml = disponiveis
+
     treino = painel.dropna(subset=["g", "receita_real_lag"]).copy()
     # Ano-base: ultimo exercicio com receita positiva. Holdings sem receita na
     # DRE teriam 2025 zerado e cairiam num crescimento sem sentido.
@@ -430,6 +491,16 @@ def estimar_proximo_ano(
 
     previsoes["AR"] = ultimo["g"].to_numpy(float)
     previsoes["setor"] = _prever_setor(treino, ultimo)
+
+    for nome in modelos_ml:
+        try:
+            teste_ml = ultimo.copy()
+            for coluna, valor in (macro_futuro or {}).items():
+                teste_ml[coluna] = valor
+            previsoes[nome] = ajustar_e_prever(nome, treino, teste_ml, opcoes_ml)
+        except Exception as exc:  # biblioteca ausente ou ajuste instavel
+            log.warning("modelo %s falhou na projecao: %s", nome, exc)
+            previsoes[nome] = np.full(len(ultimo), np.nan)
 
     n_anos = treino.groupby("ticker")["g"].count()
     mediana_setor = treino.groupby("setor")["g"].median()
@@ -489,6 +560,7 @@ __all__ = [
     "COLUNAS_FUNDAMENTOS",
     "COLUNAS_MACRO",
     "MODELOS",
+    "MODELOS_TODOS",
     "ModeloFundamentos",
     "ModeloMacro",
     "ajustar_fundamentos",

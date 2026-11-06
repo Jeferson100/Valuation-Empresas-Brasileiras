@@ -42,6 +42,8 @@ valuation/
 │   ├── dcf.py         # FCFF + valor terminal + ponte para o equity
 │   ├── ddm.py         # dividendos em dois estágios
 │   ├── previsao.py    # modelos de receita, encolhimento e backtest
+│   ├── features.py    # colunas dos modelos e features extras
+│   ├── modelos_ml.py  # XGBoost, LightGBM, CatBoost, MLP e LSTM/GRU
 │   ├── sensibilidade.py  # grade WACC × g e percentis
 │   ├── series.py      # utilidades de séries temporais e IPCA
 │   └── erros.py       # Status e exceções de negócio
@@ -62,7 +64,7 @@ valuation/
     └── run.py         # CLI e execução completa
 
 config.yaml            # premissas de mercado e betas setoriais
-tests/                 # 126 testes, sem rede
+tests/                 # 148 testes, sem rede
 dados/setor.csv        # universo de tickers (setor e segmento)
 dados/receitas_historicas.csv        # painel CVM versionado (2009–2025)
 dados/valores_valuations_acoes.csv   # saída do pipeline

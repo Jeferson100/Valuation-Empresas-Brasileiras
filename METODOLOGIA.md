@@ -145,8 +145,8 @@ do cálculo das defasagens, para o run mensal não depender da atualização da 
 
 ### 5.2 Modelos
 
-Dois modelos usam variáveis independentes, estimados por mínimos quadrados
-(`numpy.linalg.lstsq`), sem sklearn ou statsmodels:
+Os dois modelos lineares usam variáveis independentes, estimados por mínimos
+quadrados (`numpy.linalg.lstsq`), sem sklearn ou statsmodels:
 
 **Modelo A — fundamentos** (variação *entre* empresas):
 
@@ -164,29 +164,74 @@ g_it = α_i + b1·Δlog(IBC-Br)_t + b2·IPCA_t + b3·Δlog(câmbio)_t + erro
 
 Baselines: **AR** (repete o último crescimento) e **mediana do setor**.
 
+**Modelos de machine learning** (opcionais) disputam o mesmo backtest: XGBoost,
+LightGBM, CatBoost, uma MLP e duas redes recorrentes (LSTM e GRU). A comparação
+é de **solução completa** — o ML pode usar, além das variáveis dos modelos A/B,
+features extras calculadas apenas com informação até `t−1`:
+
+| Feature | Definição |
+|---|---|
+| `g_lag2` | crescimento de `t−2` |
+| `margem_lag2` | margem EBIT de `t−2` |
+| `log_ativo_lag` | log do ativo total deflacionado |
+| `alavancagem_lag` | patrimônio líquido / ativo total |
+| `idade_empresa` | número de exercícios já observados |
+| `crescimento_medio_3` | média de `g` nos três anos anteriores |
+| `vol_crescimento` | desvio-padrão de `g` nos quatro anos anteriores |
+| `d_margem` | variação da margem entre `t−2` e `t−1` |
+
+O setor entra como categórica nativa nas árvores e one-hot na MLP. As
+bibliotecas são opcionais: `pip install -e ".[ml]"` (boosting e MLP) e
+`".[deep]"` (torch, para LSTM/GRU). Modelo com biblioteca ausente é ignorado
+com aviso, sem interromper o pipeline. Os hiperparâmetros são deliberadamente
+conservadores (poucas árvores, profundidade 3), porque o painel tem ~2 mil
+linhas e ~150 empresas.
+
 ### 5.3 Backtest e seleção
 
 Backtest *rolling-origin*: treina até `t−1`, prevê `t`, para cada origem a partir
 de 2014. Nenhuma linha do ano-alvo entra no ajuste. Um modelo só substitui o AR
 num setor se reduzir o MAPE em pelo menos 1 ponto percentual (`margem_minima`).
 
-Resultado com o painel 2009–2025:
+Resultado com o painel 2009–2025 (as expectativas do Focus estavam indisponíveis
+na medição, então o Modelo B rodou com as três variáveis realizadas):
 
-| Modelo | MAPE | Erro médio de `g` | Acerto de sinal |
-|---|---:|---:|---:|
-| mediana do setor | 16,6% | −1,0 p.p. | 61% |
-| fundamentos (A) | 17,1% | −0,6 p.p. | 57% |
-| macro (B) | 18,1% | −1,3 p.p. | 59% |
-| AR | 19,3% | +0,4 p.p. | 58% |
+| Modelo | MAPE | MAPE mediano | Erro médio de `g` | Acerto de sinal |
+|---|---:|---:|---:|---:|
+| mediana do setor | 16,6% | **11,5%** | −1,1 p.p. | 61% |
+| fundamentos (A) | 17,1% | 12,3% | −0,7 p.p. | 57% |
+| CatBoost | 17,2% | 11,6% | −2,6 p.p. | 56% |
+| XGBoost | 17,7% | 11,9% | −2,2 p.p. | 56% |
+| LightGBM | 17,9% | 12,3% | −1,8 p.p. | 56% |
+| macro (B) | 18,1% | 12,4% | −1,4 p.p. | 59% |
+| AR | 19,3% | 12,9% | +0,3 p.p. | 58% |
+| MLP | 19,6% | 14,6% | −3,3 p.p. | 52% |
+| GRU | 22,3% | 17,2% | −3,2 p.p. | 52% |
+| LSTM | 22,9% | 17,4% | −0,6 p.p. | 51% |
+
+Os três modelos de *boosting* batem o AR no agregado (17,2%–17,9% contra
+19,3%), mas **não** batem a mediana setorial. O MAPE mediano deles fica próximo
+do da mediana setorial (11,6%–12,3% contra 11,5%), o que mostra que a média é
+puxada por outliers; em compensação, subestimam o crescimento em 1,8–2,6 p.p. em
+média — viés sistemático que importa no DCF, porque encolhe a receita projetada
+em todos os anos. A MLP e, principalmente, as redes recorrentes perdem para o
+AR: com 149 empresas e ~14 anos de série, não há sinal suficiente para
+identificar dinâmica temporal.
+
+A seleção por setor muda pouco: **CatBoost** entra em Petróleo, Gás e
+Biocombustíveis (no lugar do Modelo B), e os demais setores mantêm a escolha
+anterior — mediana setorial em Financeiro e Consumo não Cíclico; Modelo A em
+Materiais Básicos e Utilidade Pública; Modelo B em Bens Industriais; AR em
+Saúde, Tecnologia da Informação, Comunicações e Consumo Cíclico. Com dez candidatos por setor, a margem de 1 p.p. fica mais sujeita a
+um vencedor espúrio: os nomes por setor devem ser lidos como descritivos, não
+como evidência forte.
 
 O **Modelo A bate o AR no agregado** e é adotado em Materiais Básicos (14,1%
 contra 17,4%) e Utilidade Pública (15,9% contra 22,1%), mas perde para a mediana
 setorial em vários setores e não é usado neles. O Modelo B vence o AR em Bens
-Industriais (18,9% contra 22,6%) e Petróleo, Gás e Biocombustíveis (20,7% contra
-23,8%), e é adotado nesses dois setores. Nos demais a seleção mantém o AR ou a
-mediana setorial. Esse resultado é modesto e fica registrado: na maior parte do
-universo, a previsão publicada é um crescimento setorial, não uma previsão
-específica da empresa.
+Industriais (18,9% contra 22,6%). Esse resultado é modesto e fica registrado: na
+maior parte do universo, a previsão publicada é um crescimento setorial, não uma
+previsão específica da empresa.
 
 ### 5.4 Do modelo ao DCF
 
@@ -207,6 +252,19 @@ Limitações do cenário: o backtest do Modelo B usa a macro **realizada** do
 ano-alvo (é otimista por construção); o painel depende do mapa CNPJ → ticker do
 FCA e cobre 151 dos 159 tickers; holdings sem receita na DRE (Bradespar, por
 exemplo) caem na mediana do setor.
+
+Três limitações valem especificamente para os modelos de ML:
+
+1. **A macro é nacional.** As variáveis do BCB têm 16 valores anuais, então o
+   efeito macro é identificado no nível do ano, não da empresa. As árvores
+   ganham pouco com isso e podem aprender a média de anos específicos.
+2. **O tamanho efetivo da amostra é pequeno.** São 149 empresas e ~14
+   observações por empresa; os modelos de boosting são regularizados para não
+   decorar os anos de treino, e as redes recorrentes não têm série suficiente
+   para identificar dinâmica temporal.
+3. **A comparação é de solução completa.** O ML usa features que o OLS não usa;
+   o ganho medido não é apenas "modelo melhor", é "modelo + engenharia de
+   features".
 
 ## 6. Alíquota efetiva de imposto
 
